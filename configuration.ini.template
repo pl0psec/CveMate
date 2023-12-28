@@ -1,0 +1,20 @@
+[cvemate]
+loglevel: info
+
+[mongodb]
+Host: 127.0.0.1
+Port: 27017
+DB: mydb
+Username: admin
+Password: admin
+AuthDB: admin
+Prefix: cvemate_
+
+[nvd]
+url: https://services.nvd.nist.gov/rest/json/cves/2.0
+max_threads: 5
+apikey: ""
+public_rate_limit: 5
+apikey_rate_limit: 50
+rolling_window: 30
+results_per_page:2000
