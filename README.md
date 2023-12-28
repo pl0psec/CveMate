@@ -2,11 +2,6 @@
 
 CveMate is a tool designed to create a local copy of the NVD (National Vulnerability Database) CVE (Common Vulnerabilities and Exposures) list into a MongoDB database. This facilitates search, processing, and integration with your homemade applications. It leverages the NVD REST API v2.0 ([NVD API](https://nvd.nist.gov/developers/vulnerabilities)) to fetch the latest vulnerability data.
 
-
-TODO before publication:
-[ ] last update status per handlers
-[ ] Flush all and restart
-
 ## Prerequisites
 
 Before you begin, ensure you have the necessary components set up. Start by setting up your configuration file:
