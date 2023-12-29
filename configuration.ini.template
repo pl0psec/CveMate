@@ -18,3 +18,7 @@ public_rate_limit: 5
 apikey_rate_limit: 50
 rolling_window: 30
 results_per_page:2000
+
+[exploitdb]
+url: https://gitlab.com/exploit-database/exploitdb/-/raw/main/files_exploits.csv?ref_type=heads
+save_data: True

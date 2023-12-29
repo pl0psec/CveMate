@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 
 from handlers.logger_handler import Logger
 from handlers.config_handler import ConfigHandler
+
 from handlers.mongodb_handler import MongodbHandler
 
 class ThreadSafeCounter:
@@ -64,12 +65,12 @@ class NvdHandler:
             thread_name = threading.current_thread().name
             headers = {"apiKey": self.api_key} if self.api_key else {}
 
-            Logger.log(f"Query {query_number} [{thread_name}] params {params}", "DEBUG")
+            Logger.log(f"[NVD] Query {query_number} [{thread_name}] params {params}", "DEBUG")
             full_url = requests.Request('GET', self.baseurl, headers=headers, params=params).prepare().url
 
             attempts = 0
             while attempts < self.retry_limit:
-                Logger.log(f"Query {query_number} [{thread_name}] Attempt {attempts + 1}: GET {full_url}", "INFO")
+                Logger.log(f"[NVD] Query {query_number} [{thread_name}] Attempt {attempts + 1}: GET {full_url}", "INFO")
 
                 response = requests.get(full_url, headers=headers)
 
@@ -77,7 +78,7 @@ class NvdHandler:
                     try:
                         if response.headers.get('Content-Type') == 'application/json' and response.content:
                             json_data = response.json()
-                            Logger.log(f"Response from Query {query_number}: {json_data}", "DEBUG")
+                            Logger.log(f"[NVD] Response from Query {query_number}: {json_data}", "DEBUG")
 
                             vulnerabilities = [
                                 vuln.get('cve', {})
@@ -90,16 +91,16 @@ class NvdHandler:
                             total_results = json_data.get('totalResults', 0)
                             queue.put((vulnerabilities, total_results))
                         else:
-                            Logger.log(f"No JSON data in response from Query {query_number}", "WARNING")
+                            Logger.log(f"[NVD] No JSON data in response from Query {query_number}", "WARNING")
                             queue.put(([], 0))
                     except json.JSONDecodeError as e:
-                        Logger.log(f"JSON decoding failed for Query {query_number}: {e}", "ERROR")
+                        Logger.log(f"[NVD] JSON decoding failed for Query {query_number}: {e}", "ERROR")
                         queue.put(([], 0))                    
                     
                     break  # Exit the loop after successful processing
 
                 elif response.status_code == 403:
-                    Logger.log(f"Rate limit hit, retrying in {self.retry_delay} seconds.", "WARNING")
+                    Logger.log(f"[NVD] Rate limit hit, retrying in {self.retry_delay} seconds.", "WARNING")
                     time.sleep(self.retry_delay)
                     attempts += 1
 
@@ -108,7 +109,7 @@ class NvdHandler:
                     queue.put(([], -1))  # -1 indicates an error state
 
                 else:
-                    Logger.log(f"Failed to retrieve data: HTTP {response.status_code}", "ERROR")
+                    Logger.log(f"[NVD] Failed to retrieve data: HTTP {response.status_code}", "ERROR")
                     queue.put(([], 0))
                     break  # Exit the loop on other errors
 

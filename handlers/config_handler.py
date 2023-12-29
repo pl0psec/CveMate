@@ -29,6 +29,17 @@ class ConfigHandler:
         """ Retrieve the nvd configuration. """
         return {k: v for k, v in self.config['nvd'].items()}
 
+    def get_exploitdb_config(self):
+        """ Retrieve the exploitdb configuration. """
+        return {k: v for k, v in self.config['exploitdb'].items()}
+    
     def get_config_section(self, section):
         """ Retrieve a specific section from the configuration. """
         return {k: v for k, v in self.config[section].items()}
+    
+    def get_boolean(self, section, option, default=False):
+        """ Get a boolean value from the configuration. """
+        try:
+            return self.config.getboolean(section, option)
+        except (configparser.NoSectionError, configparser.NoOptionError):
+            return default

@@ -1,30 +1,18 @@
-import json
 import os
 import argparse
 import time
-from bson import ObjectId
+
+from handlers import utils
 
 from handlers.logger_handler import Logger
 from handlers.config_handler import ConfigHandler
 
 from datasources.nvd_handler import NvdHandler
+from datasources.exploitdb_handler import ExploitdbHandler
 
 # Configuration settings
 json_output = "data/cve.json"
 
-class JSONEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, ObjectId):
-            return str(obj)
-        return json.JSONEncoder.default(self, obj)
-
-def write2json(filename, data):
-    try:
-        with open(filename, 'w') as f:
-            json.dump(data, f, cls=JSONEncoder, indent=2)
-        Logger.log("Data successfully written to file.", "SUCCESS")
-    except Exception as e:
-        Logger.log(f"An error occurred: {e}", "ERROR")
 
 def parse_args():
     parser = argparse.ArgumentParser(description="CVE Data Handling Script")
@@ -51,14 +39,18 @@ def main():
         start_time = time.time()
        
         nvd = NvdHandler()
+        exploitdb = ExploitdbHandler()
 
         if args.update:
-            updates = nvd.getUpdates(200, follow=False)
-            write2json(json_output, updates)
+            updates = nvd.getUpdates(24, follow=False)
+            utils.write2json(json_output, updates)
             
         elif args.init:            
             updates = nvd.getAllCVE(follow=False)
-            write2json(json_output, updates)
+            utils.write2json(json_output, updates)
+
+        # Update Exploit-DB
+        exploitdb.update()
 
         end_time = time.time()
         elapsed_time = end_time - start_time

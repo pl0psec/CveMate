@@ -1,6 +1,18 @@
 # CveMate
 
-CveMate is a tool designed to create a local copy of the NVD (National Vulnerability Database) CVE (Common Vulnerabilities and Exposures) list into a MongoDB database. This facilitates search, processing, and integration with your homemade applications. It leverages the NVD REST API v2.0 ([NVD API](https://nvd.nist.gov/developers/vulnerabilities)) to fetch the latest vulnerability data.
+CveMate is a tool designed to replicate and maintain a comprehensive database of all CVE (Common Vulnerabilities and Exposures) entries, enhanced with additional information from a variety of security-related sources, into a local MongoDB database.
+
+## Sources
+
+CveMate currently utilizes the following sources for vulnerability data:
+
+- **NVD**: Fetches CVE data from the National Vulnerability Database. Using NVD Rest API v2.0 [here](https://nvd.nist.gov/developers/vulnerabilities).
+- **Exploit-DB**: Database of vulnerabilities and exploits [here](https://gitlab.com/exploit-database/exploitdb).
+
+Plans are underway to further enrich the database by integrating additional sources such as the GitHub Advisory Database, RedHat Advisory Database, and Debian.
+
+Any suggestion ?
+
 
 ## Prerequisites
 
@@ -47,11 +59,3 @@ Suggestion to add a line to your crontab file to run the update command at a reg
 ```
 0 3 * * * /path/to/python3 /path/to/main.py --update
 ```
-
-
-# Future Developments
-We are planning to enrich CveMate with additional sources in the future, including:
-- ExploitDB
-- GitHub Advisory Database
-- RedHat Advisory Database
-- Any suggestion ? 
