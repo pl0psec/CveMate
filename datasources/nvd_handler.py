@@ -174,14 +174,37 @@ class NvdHandler:
 
         return True
 
-    def getUpdates(self, last_hours=1, follow=True):
+    def getUpdates(self, last_hours=None, follow=True):
+        # Fetch the last update time for "nvd"
+        last_update_time = self.mongodb_handler.get_last_update_time("nvd")
         now_utc = datetime.utcnow()
-        lastModStartDate = (now_utc - timedelta(hours=last_hours)).strftime('%Y-%m-%dT%H:%M:%SZ')
-        lastModEndDate = now_utc.strftime('%Y-%m-%dT%H:%M:%SZ')
 
+        # Determine the start date
+        if last_hours:
+            lastModStartDate = now_utc - timedelta(hours=last_hours)
+        elif last_update_time:
+            lastModStartDate = last_update_time
+        else:
+            lastModStartDate = now_utc - timedelta(hours=24)
+
+        # Format the start and end dates
+        lastModStartDate_str = lastModStartDate.strftime('%Y-%m-%dT%H:%M:%SZ')
+        lastModEndDate_str = now_utc.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+        # Calculate the duration of the window in a human-readable format
+        duration = now_utc - lastModStartDate
+        days, seconds = duration.days, duration.seconds
+        hours = days * 24 + seconds // 3600
+        minutes = (seconds % 3600) // 60
+        duration_str = f"{days} days, {hours % 24} hours, {minutes} minutes" if days else f"{hours % 24} hours, {minutes} minutes"
+
+        # Log message with time window and its human-readable duration
+        Logger.log(f"Downloading data for the window: Start - {lastModStartDate_str}, End - {lastModEndDate_str} (Duration: {duration_str})", "INFO")
+
+        # Your existing code for querying NVD and saving data
         custom_params = {
-            "lastModStartDate": lastModStartDate,
-            "lastModEndDate": lastModEndDate
+            "lastModStartDate": lastModStartDate_str,
+            "lastModEndDate": lastModEndDate_str
         }
 
         updates = self.queryNVD(custom_params, follow)

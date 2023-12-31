@@ -1,4 +1,4 @@
-from datetime import datetime  # Importing the datetime class from the datetime module
+from datetime import datetime
 
 from pymongo import MongoClient
 from pymongo import UpdateOne
@@ -162,18 +162,34 @@ class MongodbHandler:
         """
         try:
             prefixed_collection = self.prefix + "update_status"
-            current_time = datetime.now()
+            current_time_utc = datetime.utcnow()
+
             result = self.db[prefixed_collection].find_one_and_update(
                 {"data_source": data_source},
-                {"$set": {"last_updated": current_time}},
+                {"$set": {"last_updated": current_time_utc}},
                 upsert=True,
                 return_document=True
             )
-            Logger.log(f"Update status for '{data_source}' set to {current_time}.", "SUCCESS")
+            Logger.log(f"Update status for '{data_source}' set to {current_time_utc}.", "SUCCESS")
             return result
         except PyMongoError as e:
             Logger.log(f"Error updating status for data source '{data_source}': {e}", "ERROR")
 
+    def get_last_update_time(self, data_source):
+        """
+        Fetch the last update time for a specified data source.
+        Args:
+        data_source (str): The name of the data source.
+        Returns:
+        datetime: The datetime of the last update or None if not found.
+        """
+        try:
+            status_collection = self.prefix + "update_status"
+            status = self.db[status_collection].find_one({"data_source": data_source})
+            return status['last_updated'] if status else None
+        except PyMongoError as e:
+            Logger.log(f"Error fetching last update time for data source '{data_source}': {e}", "ERROR")
+            return None
 
 
 

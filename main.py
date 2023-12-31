@@ -38,14 +38,14 @@ def main():
         nvd = NvdHandler()
         exploitdb = ExploitdbHandler()
 
-        # if args.update:
-        #     nvd.getUpdates(24, follow=False)
+        if args.update:
+            nvd.getUpdates(follow=False)
             
         # elif args.init:            
         #     nvd.getAllCVE(follow=False)
            
         # Update Exploit-DB
-        exploitdb.update()
+        # exploitdb.update()
 
         end_time = time.time()
         elapsed_time = end_time - start_time
