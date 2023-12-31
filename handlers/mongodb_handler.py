@@ -1,3 +1,5 @@
+from datetime import datetime  # Importing the datetime class from the datetime module
+
 from pymongo import MongoClient
 from pymongo import UpdateOne
 from pymongo.errors import ConnectionFailure, PyMongoError
@@ -151,6 +153,26 @@ class MongodbHandler:
         except PyMongoError as e:
             Logger.log("Error listing prefixed collections: {e}", "ERROR")
 
+
+    def update_status(self, data_source):
+        """
+        Update the last update datetime for a specified data source.
+        Args:
+        data_source (str): The name of the data source.
+        """
+        try:
+            prefixed_collection = self.prefix + "update_status"
+            current_time = datetime.now()
+            result = self.db[prefixed_collection].find_one_and_update(
+                {"data_source": data_source},
+                {"$set": {"last_updated": current_time}},
+                upsert=True,
+                return_document=True
+            )
+            Logger.log(f"Update status for '{data_source}' set to {current_time}.", "SUCCESS")
+            return result
+        except PyMongoError as e:
+            Logger.log(f"Error updating status for data source '{data_source}': {e}", "ERROR")
 
 
 

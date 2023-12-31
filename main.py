@@ -10,9 +10,6 @@ from handlers.config_handler import ConfigHandler
 from datasources.nvd_handler import NvdHandler
 from datasources.exploitdb_handler import ExploitdbHandler
 
-# Configuration settings
-json_output = "data/cve.json"
-
 
 def parse_args():
     parser = argparse.ArgumentParser(description="CVE Data Handling Script")
@@ -31,7 +28,7 @@ def main():
     else:
         Logger.set_max_log_level(cvemate_config.get('loglevel', 'INFO'))
 
-    output_directory = os.path.dirname(json_output)
+    output_directory = "data"
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
 
@@ -41,14 +38,12 @@ def main():
         nvd = NvdHandler()
         exploitdb = ExploitdbHandler()
 
-        if args.update:
-            updates = nvd.getUpdates(24, follow=False)
-            utils.write2json(json_output, updates)
+        # if args.update:
+        #     nvd.getUpdates(24, follow=False)
             
-        elif args.init:            
-            updates = nvd.getAllCVE(follow=False)
-            utils.write2json(json_output, updates)
-
+        # elif args.init:            
+        #     nvd.getAllCVE(follow=False)
+           
         # Update Exploit-DB
         exploitdb.update()
 

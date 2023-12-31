@@ -1,10 +1,12 @@
 import threading
 import time
 import requests
+import os
 import json
 from queue import Queue
 from datetime import datetime, timedelta
 
+from handlers import utils
 from handlers.logger_handler import Logger
 from handlers.config_handler import ConfigHandler
 
@@ -48,6 +50,13 @@ class NvdHandler:
         self.results_per_page = int(nvd_config.get('results_per_page', 2000))
         self.max_threads = int(nvd_config.get('max_threads', 5))
 
+        self.save_data = config_handler.get_boolean('nvd', 'save_data', False)
+
+        if self.save_data:
+            output_directory = os.path.dirname("data")
+            if not os.path.exists(output_directory):
+                os.makedirs(output_directory)
+
         mongodb_config = config_handler.get_mongodb_config()        
         self.mongodb_handler = MongodbHandler(
             mongodb_config['host'],
@@ -87,6 +96,7 @@ class NvdHandler:
 
                             if vulnerabilities:
                                 self.mongodb_handler.insert_many("cve", vulnerabilities)
+                                self.mongodb_handler.update_status("nvd")
                             
                             total_results = json_data.get('totalResults', 0)
                             queue.put((vulnerabilities, total_results))
@@ -156,8 +166,13 @@ class NvdHandler:
         return all_cves
 
     def getAllCVE(self, custom_params={}, follow=True):
-        #TODO: Do we still need to return the full list of CVE ? not sure ... 
-        return self.queryNVD(custom_params, follow)
+        
+        updates = self.queryNVD(custom_params, follow)
+         
+        if self.save_data:
+            utils.write2json("data/nvd_all.json", updates)
+
+        return True
 
     def getUpdates(self, last_hours=1, follow=True):
         now_utc = datetime.utcnow()
@@ -169,5 +184,9 @@ class NvdHandler:
             "lastModEndDate": lastModEndDate
         }
 
-        #TODO: Do we still need to return the full list of CVE ? not sure ... 
-        return self.queryNVD(custom_params, follow)
+        updates = self.queryNVD(custom_params, follow)
+
+        if self.save_data:
+            utils.write2json("data/nvd_update.json", updates)
+
+        return True

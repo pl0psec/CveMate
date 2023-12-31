@@ -12,6 +12,7 @@ Prefix: cvemate_
 
 [nvd]
 url: https://services.nvd.nist.gov/rest/json/cves/2.0
+save_data: False
 max_threads: 5
 apikey: ""
 public_rate_limit: 5
@@ -21,4 +22,4 @@ results_per_page:2000
 
 [exploitdb]
 url: https://gitlab.com/exploit-database/exploitdb/-/raw/main/files_exploits.csv?ref_type=heads
-save_data: True
+save_data: False
