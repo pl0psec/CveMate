@@ -32,6 +32,10 @@ class ConfigHandler:
     def get_exploitdb_config(self):
         """ Retrieve the exploitdb configuration. """
         return {k: v for k, v in self.config['exploitdb'].items()}
+
+    def get_epss_config(self):
+        """ Retrieve the epss configuration. """
+        return {k: v for k, v in self.config['epss'].items()}
     
     def get_config_section(self, section):
         """ Retrieve a specific section from the configuration. """

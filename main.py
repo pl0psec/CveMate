@@ -9,7 +9,7 @@ from handlers.config_handler import ConfigHandler
 
 from datasources.nvd_handler import NvdHandler
 from datasources.exploitdb_handler import ExploitdbHandler
-
+from datasources.epss_handler import EpssHandler
 
 def parse_args():
     parser = argparse.ArgumentParser(description="CVE Data Handling Script")
@@ -35,17 +35,21 @@ def main():
     if args.update or args.init:
         start_time = time.time()
        
+        # Init or Updaet CVE from NVD
         nvd = NvdHandler()
-        exploitdb = ExploitdbHandler()
-
         if args.update:
-            nvd.getUpdates(follow=False)
+            nvd.get_updates(follow=False)
             
-        # elif args.init:            
-        #     nvd.getAllCVE(follow=False)
+        elif args.init:            
+            nvd.download_all_data()
            
-        # Update Exploit-DB
-        # exploitdb.update()
+        # Add Exploit-DB
+        exploitdb = ExploitdbHandler()
+        exploitdb.update()
+
+        # Add EPSS
+        epss = EpssHandler()
+        epss.update()
 
         end_time = time.time()
         elapsed_time = end_time - start_time

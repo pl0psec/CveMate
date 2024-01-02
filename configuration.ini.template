@@ -13,12 +13,16 @@ Prefix: cvemate_
 [nvd]
 url: https://services.nvd.nist.gov/rest/json/cves/2.0
 save_data: False
-max_threads: 5
+max_threads: 10
 apikey: ""
 public_rate_limit: 5
 apikey_rate_limit: 50
 rolling_window: 30
 results_per_page:2000
+
+[epss]
+url: https://epss.cyentia.com/epss_scores-current.csv.gz
+save_data: False
 
 [exploitdb]
 url: https://gitlab.com/exploit-database/exploitdb/-/raw/main/files_exploits.csv?ref_type=heads

@@ -1,6 +1,8 @@
 import requests
 import os
 import json
+import gzip
+import shutil
 from bson import ObjectId
 from handlers.logger_handler import Logger
 
@@ -70,15 +72,29 @@ def download_file(url, save_path=None):
     it saves the content to the specified location. If the HTTP response is not 200,
     it raises an exception.
     """
-
     response = requests.get(url)
     if response.status_code != 200:
+        Logger.log(f"[Downloader] Failed to download file: HTTP {response.status_code}","ERROR")
         raise Exception(f"Failed to download file: HTTP {response.status_code}")
 
-    # If a save path is provided, save the file to the given location.
+    # Determine the content type
+    content_type = response.headers.get('Content-Type', '')
+    Logger.log(f"[Downloader] Content-Type: {content_type}","INFO")
+
+    # Prepare the content
+    content = response.content
+
+    # Check if the content is compressed and uncompress it
+    if 'gzip' in content_type:
+        content = gzip.decompress(content)
+        Logger.log(f"[Downloader] Content was gzip compressed, uncompressed successfully","INFO")
+
+    # If a save path is provided, save the file to the given location
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        with open(save_path, 'w', newline='') as file:
-            file.write(response.text)
+        with open(save_path, 'wb') as file:
+            file.write(content)
+            Logger.log(f"[Downloader] File saved to {save_path}","INFO")
 
-    return response.text
+    # Return the uncompressed content as text
+    return content.decode()

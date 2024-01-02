@@ -1,6 +1,8 @@
 from datetime import datetime
+import _testimportmultiple
+import time
 
-from pymongo import MongoClient
+from pymongo import MongoClient, ASCENDING
 from pymongo import UpdateOne
 from pymongo.errors import ConnectionFailure, PyMongoError
 from bson import ObjectId
@@ -30,6 +32,28 @@ class MongodbHandler:
         except ConnectionFailure:
             Logger.log("MongoDB connection failed", "ERROR")
 
+    def ensure_index_on_id(self, collection, field_name):
+        try:
+            prefixed_collection = self.prefix + collection
+            collection = self.db[prefixed_collection]
+
+            # Get current indexes on the collection
+            current_indexes = collection.index_information()
+
+            # Check if 'id' field is indexed
+            id_indexed = any(field_name in idx_info['key'][0] for idx_info in current_indexes.values())
+
+            if id_indexed:
+                Logger.log(f"[MongoDB] Collection {prefixed_collection} Index on {field_name} already exists.","INFO")
+            else:
+                # Create an index on 'id' field
+                collection.create_index([(field_name, ASCENDING)])
+                Logger.log(f"[MongoDB] Collection {prefixed_collection} Index on {field_name} created.","INFO")
+
+        except PyMongoError as e:
+            Logger.log(f"[MongoDB] Error for {prefixed_collection}: {e}", "ERROR")
+
+
     def insert(self, collection, json_data):
         try:
             prefixed_collection = self.prefix + collection
@@ -39,16 +63,22 @@ class MongodbHandler:
         except PyMongoError as e:
             Logger.log(f"[MongoDB] Error inserting document in {collection}: {e}", "ERROR")
 
-    # def insert_many(self, collection, json_data_list):
-    #     try:
-    #         prefixed_collection = self.prefix + collection
-    #         result = self.db[prefixed_collection].insert_many(json_data_list).inserted_ids
-    #         Logger.log(f"[MongoDB] {len(result)} documents inserted successfully in {collection}.", "SUCCESS")
-    #         return result
-    #     except PyMongoError as e:
-    #         Logger.log(f"[MongoDB] Error inserting documents in {collection}: {e}", "ERROR")
-    
     def insert_many(self, collection, json_data_list):
+        try:            
+            start_time = time.time()  # Start timing   
+
+            prefixed_collection = self.prefix + collection                     
+            result = self.db[prefixed_collection].insert_many(json_data_list).inserted_ids
+            
+            end_time = time.time()  # End timing     
+            duration = end_time - start_time  # Calculate duration
+
+            Logger.log(f"[MongoDB] {len(result)} documents inserted in {collection}. Time taken: {duration:.2f} seconds.", "SUCCESS")
+            return result
+        except PyMongoError as e:
+            Logger.log(f"[MongoDB] Error inserting documents in {collection}: {e}", "ERROR")
+    
+    def bulk_write(self, collection, json_data_list):
         try:
             prefixed_collection = self.prefix + collection
             operations = []
@@ -58,16 +88,20 @@ class MongodbHandler:
                     operations.append(UpdateOne({'id': id}, {'$set': data}, upsert=True))
 
             if operations:
+                start_time = time.time()  # Start timing
                 result = self.db[prefixed_collection].bulk_write(operations)
+                end_time = time.time()  # End timing
+
                 upserted_count = result.upserted_count
                 updated_count = len(json_data_list) - upserted_count
-                Logger.log(f"[MongoDB] {updated_count} documents updated and {upserted_count} documents inserted in {collection}.", "SUCCESS")
+                duration = end_time - start_time  # Calculate duration
+
+                Logger.log(f"[MongoDB] {updated_count} documents updated and {upserted_count} documents inserted in {collection}. Time taken: {duration:.2f} seconds.", "SUCCESS")
             else:
                 Logger.log(f"[MongoDB] No valid operations to perform in {collection}.", "WARNING")
             return result
         except PyMongoError as e:
             Logger.log(f"[MongoDB] Error upserting/inserting documents in {collection}: {e}", "ERROR")
-
 
     def findOneAndUpdate(self, id, collection, json_data):        
         try:
