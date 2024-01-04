@@ -1,9 +1,9 @@
 CveMate
 =======
-.. |Py-Versions| image:: https://img.shields.io/pypi/pyversions/tqdm.svg?logo=python&logoColor=white
+.. image:: https://img.shields.io/pypi/pyversions/tqdm.svg?logo=python&logoColor=white
    :target: https://pypi.org/project/tqdm
-
-|Py-Versions|
+.. image:: https://img.shields.io/github/license/teuf/cvemate
+   :alt: GitHub License
 
 CveMate is a tool designed to replicate and maintain a comprehensive database of all CVE (Common Vulnerabilities and Exposures) entries, enhanced with additional information from a variety of security-related sources, into a local MongoDB database.
 
@@ -32,29 +32,27 @@ CveMate currently utilizes the following sources for vulnerability data:
      - Estimate of the probability of exploitation `epss <https://www.first.org/epss/data_stats>`_.
    * - **Debian Security-tracker**
      - Bug database maintained by Debian's security team `Security Bug Tracker <https://security-tracker.debian.org/tracker>`_.
+   * - **RedHat Security Data**
+     - CVE from Red Hat Security Data API 1.0 `access.redhat.com <https://security-tracker.debian.org/tracker>`_.
 
-Plans are underway to further enrich the database by integrating additional sources such as the GitHub Advisory Database, RedHat Advisory Database.
+Plans are underway to further enrich the database by integrating additional sources such as the GitHub Advisory Database.
 
 Any suggestion ?
 
 Prerequisites
 -------------
 
-Before you begin, ensure you have the necessary components set up. Start by setting up your configuration file:
+Before you begin, ensure your environment is set up:
 
-1. **Create configuration file**
-
-   Copy the template configuration file and edit it with your MongoDB details:
+1. **Create a Configuration File**
+   Copy and edit the configuration file with your MongoDB details:
 
    .. code-block:: sh
 
        cp configuration.ini.template configuration.ini
 
-   After copying, open configuration.ini in your favorite text editor and fill in your MongoDB details.
-
-2. **Install dependencies**
-
-   To run CveMate smoothly, install the required Python packages:
+2. **Install Dependencies**
+   Install required Python packages for CveMate:
 
    .. code-block:: sh
 
@@ -63,29 +61,32 @@ Before you begin, ensure you have the necessary components set up. Start by sett
 Populate CveMate
 ----------------
 
-After setting up your environment, you can initialize CveMate to create a local copy of the NVD CVE list in your MongoDB. 
-
-Run the following command:
+To initialize CveMate and create a local copy of the NVD CVE list, run:
 
 .. code-block:: sh
 
     python3 main.py --init
 
-This command will trigger the initial data population process. It might take some time depending on your internet connection and the size of the data.
+This process may vary in duration based on your internet connection and data size.
 
 Update CveMate
 --------------
 
-To ensure CveMate stays up-to-date with the latest vulnerability data, we recommend scheduling regular updates. This can be done by setting up a cron job.
+Keep your data up-to-date with scheduled updates. Set up a cron job as follows:
 
-We recommend to have this in a cronjob:
+1. Edit your crontab file:
 
-.. code-block:: sh
+   .. code-block:: sh
 
-    python3 main.py --update
+       crontab -e
 
-Suggestion to add a line to your crontab file to run the update command at a regular interval. For example, to update daily at 3 AM, you might add:
+2. Add a line to run the update command regularly, e.g., daily at 3 AM:
 
-.. code-block::
+   .. code-block::
 
-    0 3 * * * /path/to/python3 /path/to/main.py --update
+       0 3 * * * /path/to/python3 /path/to/main.py --update
+
+Contribution
+------------
+
+We welcome contributions! If you have ideas or want to add new features.
