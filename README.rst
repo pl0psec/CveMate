@@ -24,6 +24,8 @@ CveMate currently utilizes the following sources for vulnerability data:
      - **Description**
    * - **NVD**
      - Fetches CVE data from the National Vulnerability Database. Using NVD Rest API v2.0 `nvd <https://nvd.nist.gov/developers/vulnerabilities>`_.
+   * - **CVE.org**
+     - Fetches CVE data from CVE.org. Using CVE JSON 5.0 format `cve.org <https://github.com/CVEProject/cvelistV5>`_.
    * - **Exploit-DB**
      - Database of vulnerabilities and exploits `exploit-db <https://gitlab.com/exploit-database/exploitdb>`_.
    * - **EPSS**
