@@ -32,7 +32,7 @@ CveMate currently utilizes the following sources for vulnerability data:
      - Estimate of the probability of exploitation `epss <https://www.first.org/epss/data_stats>`_.
    * - **Debian Security-tracker**
      - Bug database maintained by Debian's security team `Security Bug Tracker <https://security-tracker.debian.org/tracker>`_.
-     - 
+
 Plans are underway to further enrich the database by integrating additional sources such as the GitHub Advisory Database, RedHat Advisory Database.
 
 Any suggestion ?
