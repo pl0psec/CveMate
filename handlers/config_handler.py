@@ -36,7 +36,11 @@ class ConfigHandler:
     def get_epss_config(self):
         """ Retrieve the epss configuration. """
         return {k: v for k, v in self.config['epss'].items()}
-    
+
+    def get_debian_config(self):
+        """ Retrieve the Debian configuration. """
+        return {k: v for k, v in self.config['debian'].items()}
+        
     def get_config_section(self, section):
         """ Retrieve a specific section from the configuration. """
         return {k: v for k, v in self.config[section].items()}

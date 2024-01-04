@@ -20,10 +20,23 @@ apikey_rate_limit: 50
 rolling_window: 30
 results_per_page:2000
 
+[cveorg]
+url_init: https://github.com/CVEProject/cvelistV5/archive/refs/heads/main.zip
+url_updates: https://raw.githubusercontent.com/CVEProject/cvelistV5/main/cves/deltaLog.json
+save_data: False
+
 [epss]
 url: https://epss.cyentia.com/epss_scores-current.csv.gz
 save_data: False
 
 [exploitdb]
 url: https://gitlab.com/exploit-database/exploitdb/-/raw/main/files_exploits.csv?ref_type=heads
+save_data: False
+
+[debian]
+url: https://security-tracker.debian.org/tracker/data/json
+save_data: False
+
+[redhat]
+url: https://access.redhat.com/hydra/rest/securitydata
 save_data: False

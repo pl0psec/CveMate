@@ -23,6 +23,8 @@ def singleton(cls):
 class EpssHandler:
 
     def __init__(self, config_file='configuration.ini'):
+        self.banner = f"{chr(int('EAD3', 16))} {chr(int('f14ba', 16))} EPSS"
+
         config_handler = ConfigHandler(config_file)
 
         epss_config = config_handler.get_epss_config()
@@ -40,13 +42,15 @@ class EpssHandler:
             mongodb_config['prefix'])
    
     def update(self):
+        print("\n"+self.banner)
+
         # Call the new download_file method
         csv_data = utils.download_file(self.url, 'data/epss.csv' if self.save_data else None)
 
         # Log the number of exploits and size of the file
         num_epss = len(csv_data.splitlines()) - 1  # Subtract 1 for the header row
         file_size = len(csv_data.encode('utf-8'))  # Size in bytes
-        Logger.log(f"[EPSS] Downloaded {num_epss} exploits, file size: {file_size} bytes", "INFO")
+        Logger.log(f"[{chr(int('f14ba', 16))} EPSS] Downloaded {num_epss} exploits, file size: {file_size} bytes", "INFO")
 
         # Initialize an empty list for the results
         results = []
@@ -73,7 +77,7 @@ class EpssHandler:
             cve_count += 1
 
         # Log the number of CVE codes found
-        Logger.log(f"[EPSS] Total number of CVE codes found: {cve_count}", "INFO")
+        Logger.log(f"[{chr(int('f14ba', 16))} EPSS] Total number of CVE codes found: {cve_count}", "INFO")
 
         self.mongodb_handler.update_multiple_documents("cve", results)
         self.mongodb_handler.update_status("epss")

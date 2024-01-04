@@ -2,21 +2,26 @@ import os
 import argparse
 import time
 
-from handlers import utils
-
 from handlers.logger_handler import Logger
 from handlers.config_handler import ConfigHandler
 
 from datasources.nvd_handler import NvdHandler
+from datasources.cveorg_handler import CveDotOrgHandler
 from datasources.exploitdb_handler import ExploitdbHandler
 from datasources.epss_handler import EpssHandler
+from datasources.debian_handler import DebianHandler
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="CVE Data Handling Script")
-    parser.add_argument("-d", "--debug", action="store_true", help="Set log level to DEBUG")
-    parser.add_argument("--update", action="store_true", help="Fetch updates for CVE data")
-    parser.add_argument("--init", action="store_true", help="Fetch all CVE data")
+    parser.add_argument("-d", "--debug", action="store_true",
+                        help="Set log level to DEBUG")
+    parser.add_argument("--update", action="store_true",
+                        help="Fetch updates for CVE data")
+    parser.add_argument("--init", action="store_true",
+                        help="Fetch all CVE data")
     return parser.parse_args(), parser
+
 
 def main():
     args, parser = parse_args()
@@ -34,29 +39,39 @@ def main():
 
     if args.update or args.init:
         start_time = time.time()
-       
+
         # Init or Updaet CVE from NVD
         nvd = NvdHandler()
-        if args.update:
-            nvd.get_updates(follow=False)
-            
-        elif args.init:            
+        if args.init:
             nvd.download_all_data()
-           
-        # Add Exploit-DB
+
+        elif args.update:
+            nvd.get_updates(follow=False)
+
+        # Add missing CVE from CVE.org (Usually unconfirmed CVE)          
+        cveorg = CveDotOrgHandler()
+        cveorg.update()
+        # exit()
+
+        # Add Debian Bug database
+        debian = DebianHandler()
+        debian.update()
+
+        # # Add Exploit-DB
         exploitdb = ExploitdbHandler()
         exploitdb.update()
 
-        # Add EPSS
+        # # Add EPSS score
         epss = EpssHandler()
         epss.update()
 
         end_time = time.time()
         elapsed_time = end_time - start_time
-        Logger.log(f"Execution completed in {elapsed_time:.2f} seconds.", "INFO")
+        Logger.log(f" {chr(int('f253', 16))} Execution completed in {elapsed_time:.2f} seconds.", "INFO")
 
     else:
         parser.print_help()
+
 
 if __name__ == "__main__":
     main()

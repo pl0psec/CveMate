@@ -25,25 +25,25 @@ def singleton(cls):
     return get_instance
 
 @singleton
-class NvdHandler:
+class RedhatHandler:
 
     def __init__(self, config_file='configuration.ini'):
-        self.banner = f"{chr(int('EAD3', 16))} {chr(int('f0626', 16))} CVE from NVD"
+        self.banner = f"{chr(int('EAD3', 16))} {chr(int('f111b', 16))} from RedHat"
 
         config_handler = ConfigHandler(config_file)
 
-        nvd_config = config_handler.get_nvd_config()
-        self.baseurl = nvd_config.get('url', 'https://services.nvd.nist.gov/rest/json/cves/2.0')
-        self.api_key = nvd_config.get('apikey', '')
-        self.public_rate_limit = int(nvd_config.get('public_rate_limit', 5))
-        self.api_rate_limit = int(nvd_config.get('apikey_rate_limit', 50))
-        self.rolling_window = int(nvd_config.get('rolling_window', 30))
-        self.retry_limit = int(nvd_config.get('retry_limit', 3))
-        self.retry_delay = int(nvd_config.get('retry_delay', 10))
-        self.results_per_page = int(nvd_config.get('results_per_page', 2000))
-        self.max_threads = int(nvd_config.get('max_threads', 10))
+        redhat_config = config_handler.get_redhat_config()
+        self.baseurl = redhat_config.get('url', 'https://access.redhat.com/hydra/rest/securitydata')
+        self.api_key = redhat_config.get('apikey', '')
+        self.public_rate_limit = int(redhat_config.get('public_rate_limit', 5))
+        self.api_rate_limit = int(redhat_config.get('apikey_rate_limit', 50))
+        self.rolling_window = int(redhat_config.get('rolling_window', 30))
+        self.retry_limit = int(redhat_config.get('retry_limit', 3))
+        self.retry_delay = int(redhat_config.get('retry_delay', 10))
+        self.results_per_page = int(redhat_config.get('results_per_page', 2000))
+        self.max_threads = int(redhat_config.get('max_threads', 10))
 
-        self.save_data = config_handler.get_boolean('nvd', 'save_data', False)
+        self.save_data = config_handler.get_boolean('redhat', 'save_data', False)
 
         if self.save_data:
             output_directory = os.path.dirname("data")
@@ -97,11 +97,11 @@ class NvdHandler:
 
         if vulnerabilities:
             if step.lower() == "init":
-                self.mongodb_handler.insert_many("cve", vulnerabilities, silent=True)
+                self.mongodb_handler.insert_many("cve", vulnerabilities)
             else:
-                self.mongodb_handler.bulk_write("cve", vulnerabilities, silent=True)
+                self.mongodb_handler.bulk_write("cve", vulnerabilities)
 
-            self.mongodb_handler.update_status("nvd", silent=True)
+            self.mongodb_handler.update_status("redhat")
         
         
         return data
@@ -134,12 +134,12 @@ class NvdHandler:
         self.mongodb_handler.ensure_index_on_id("cve","id")
 
         if self.save_data:
-            utils.write2json("data/nvd_all.json", all_vulnerabilities)
+            utils.write2json("data/redhat_all.json", all_vulnerabilities)
 
 
     def get_updates(self, last_hours=None, follow=True):
         print("\n"+self.banner)
-        last_update_time = self.mongodb_handler.get_last_update_time("nvd")
+        last_update_time = self.mongodb_handler.get_last_update_time("redhat")
         now_utc = datetime.utcnow()
 
         if last_hours:
@@ -170,4 +170,4 @@ class NvdHandler:
         updates = self.make_request(custom_params=custom_params)
 
         if self.save_data:
-            utils.write2json("data/nvd_update.json", updates)
+            utils.write2json("data/redhat_update.json", updates)
