@@ -49,8 +49,7 @@ class DebianHandler:
         print("\n"+self.banner)
 
         # Call the new download_file method
-        json_data = utils.download_file(
-            self.url, 'data/debian.json' if self.save_data else None)
+        json_data = utils.download_file(self.url, 'data/debian.json' if self.save_data else None)
 
         # Parse the JSON data
         parsed_data = json.loads(json_data)
@@ -74,8 +73,7 @@ class DebianHandler:
         # utils.write2json("data/debian.mongo.json", updated_data)
 
         # Log the number of CVE codes found
-        Logger.log(
-            f"[{chr(int('E77D', 16))} Debian] Total number of CVE codes found: {len(updated_data)}", "INFO")
+        Logger.log(f"[{chr(int('E77D', 16))} Debian] Total number of CVE codes found: {len(updated_data)}", "INFO")
 
         self.mongodb_handler.update_or_create_multiple_documents("cve", updated_data)
         self.mongodb_handler.update_status("debian")

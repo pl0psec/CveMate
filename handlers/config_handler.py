@@ -20,7 +20,7 @@ class ConfigHandler:
     def get_cvemate_config(self):
         """ Retrieve the cvemate configuration. """
         return {k: v for k, v in self.config['cvemate'].items()}
-    
+
     def get_mongodb_config(self):
         """ Retrieve the mongodb configuration. """
         return {k: v for k, v in self.config['mongodb'].items()}
@@ -40,11 +40,11 @@ class ConfigHandler:
     def get_debian_config(self):
         """ Retrieve the Debian configuration. """
         return {k: v for k, v in self.config['debian'].items()}
-        
+
     def get_config_section(self, section):
         """ Retrieve a specific section from the configuration. """
         return {k: v for k, v in self.config[section].items()}
-    
+
     def get_boolean(self, section, option, default=False):
         """ Get a boolean value from the configuration. """
         try:

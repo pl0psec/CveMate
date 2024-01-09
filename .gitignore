@@ -1,7 +1,9 @@
 configuration.ini
+configuration_*
 data/
 DEBUG.md
 test*
+.vscode/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

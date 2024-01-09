@@ -17,23 +17,38 @@ Data sources
 CveMate currently utilizes the following sources for vulnerability data:
 
 .. list-table:: 
-   :widths: 25 75
+   :widths: 20 60 20
    :header-rows: 1
 
    * - **Source**
      - **Description**
+     - **Format**
    * - **NVD**
-     - Fetches CVE data from the National Vulnerability Database. Using NVD Rest API v2.0 `nvd <https://nvd.nist.gov/developers/vulnerabilities>`_.
+     - Fetches CVE data from the National Vulnerability Database. Using NVD Rest API v2.0.
+     - `NVD_CVE 2.0 <https://nvd.nist.gov/developers/vulnerabilities>`_
    * - **CVE.org**
-     - Fetches CVE data from CVE.org. Using CVE JSON 5.0 format `cve.org <https://github.com/CVEProject/cvelistV5>`_.
+     - Fetches CVE data from CVE.org. Using CVE JSON 5.0 format.
+     - `CVE_RECORD 5.0 <https://github.com/CVEProject/cvelistV5>`_
+   * - **CWE**
+     - Common Weakness Enumeration (CWE™) is a list of software and hardware weaknesses.
+
+       ‼️ Current implementation only captures basic CWE details. 
+       
+       🆘 Improvement needed to capture full details. Help is welcome :)
+     - `CWE v4.13 <https://cwe.mitre.org/data/downloads.html>`_
    * - **Exploit-DB**
-     - Database of vulnerabilities and exploits `exploit-db <https://gitlab.com/exploit-database/exploitdb>`_.
+     - Database of vulnerabilities and exploits.
+     - `exploit-db <https://gitlab.com/exploit-database/exploitdb>`_
+   * - **Metasploit**
+     - The Metasploit Framework contains a suite of tools that you can use to test security vulnerabilities, enumerate networks, execute attacks, and evade detection.
+     - `Metasploit-framework <https://docs.rapid7.com/metasploit/msf-overview>`_ 
    * - **EPSS**
-     - Estimate of the probability of exploitation `epss <https://www.first.org/epss/data_stats>`_.
+     - Estimate of the probability of exploitation.
+     - `EPSS <https://www.first.org/epss/data_stats>`_
    * - **Debian Security-tracker**
-     - Bug database maintained by Debian's security team `Security Bug Tracker <https://security-tracker.debian.org/tracker>`_.
-   * - **RedHat Security Data**
-     - CVE from Red Hat Security Data API 1.0 `access.redhat.com <https://security-tracker.debian.org/tracker>`_.
+     - Bug database maintained by Debian's security team.
+     - `Debian Security Bug Tracker <https://security-tracker.debian.org/tracker>`_
+
 
 Plans are underway to further enrich the database by integrating additional sources such as the GitHub Advisory Database.
 

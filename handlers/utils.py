@@ -1,10 +1,13 @@
-import requests
 import os
+import io
 import json
 import gzip
-import shutil
+import zipfile
+import requests
+
 from bson import ObjectId
 from handlers.logger_handler import Logger
+
 
 class JSONEncoder(json.JSONEncoder):
     """
@@ -15,19 +18,20 @@ class JSONEncoder(json.JSONEncoder):
 
     Attributes:
         Inherited from json.JSONEncoder.
-    
+
     Methods:
         default(obj): Converts `ObjectId` instances from MongoDB to string format 
                       before JSON encoding. Defaults to the standard JSON encoder 
                       for all other types.
     """
 
-    def default(self, obj):
+    def default(self, o):
         # If the object is an ObjectId (from MongoDB), convert it to a string.
-        if isinstance(obj, ObjectId):
-            return str(obj)
+        if isinstance(o, ObjectId):
+            return str(o)
         # Otherwise, use the default JSON encoding.
-        return json.JSONEncoder.default(self, obj)
+        return json.JSONEncoder.default(self, o)
+
 
 def write2json(filename, data):
     """
@@ -53,6 +57,7 @@ def write2json(filename, data):
     except Exception as e:
         Logger.log(f"An error occurred: {e}", "ERROR")
 
+
 def download_file(url, save_path=None, is_binary=False):
     """
     Downloads a file from a given URL and optionally saves it to a specified path.
@@ -72,37 +77,74 @@ def download_file(url, save_path=None, is_binary=False):
     it saves the content to the specified location. If the HTTP response is not 200,
     it raises an exception.
     """
-    
-    response = requests.get(url)
+
+    response = requests.get(url, timeout=10)
     if response.status_code != 200:
-        Logger.log(f"[{chr(int('f0ed', 16))} Downloader] Failed to download file: HTTP {response.status_code}", "ERROR")
-        raise Exception(f"Failed to download file: HTTP {response.status_code}")
+        Logger.log(
+            f"[{chr(int('f0ed', 16))} Downloader] Failed to download file: HTTP {response.status_code}", "ERROR")
+        raise Exception(
+            f"Failed to download file: HTTP {response.status_code}")
 
     # Determine the content type
     content_type = response.headers.get('Content-Type', '')
-    Logger.log(f"[{chr(int('f0ed', 16))} Downloader] Content-Type: {content_type}", "INFO")
+    Logger.log(
+        f"[{chr(int('f0ed', 16))} Downloader] Content-Type: {content_type}", "INFO")
 
     # Prepare the content
     content = response.content
 
-    # Check if the content is compressed and uncompress it
-    if 'gzip' in content_type:
-        content = gzip.decompress(content)
-        Logger.log(f"[{chr(int('f0ed', 16))} Downloader] Content was gzip compressed, uncompressed successfully", "INFO")
-
-    # If a save path is provided and the content is binary, save the file
-    if save_path and is_binary:
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        with open(save_path, 'wb') as file:
-            file.write(content)
-            Logger.log(f"[{chr(int('f0ed', 16))} Downloader] File saved to {save_path}", "INFO")
+    # If the content is binary, save the file if a save path is provided, and return the save path
+    if is_binary:
+        if save_path:
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+            with open(save_path, 'wb') as file:
+                file.write(content)
+                Logger.log(f"[{chr(int('f0ed', 16))} Downloader] File saved to {save_path}", "INFO")
         return save_path
 
-    # If the content is text, return the decoded content
-    if not is_binary:
+    # If the content is text
+    else:
+
+        # Check if the content is compressed and uncompress it
+        if 'gzip' in content_type:
+            content = gzip.decompress(content)
+            Logger.log(
+                f"[{chr(int('f0ed', 16))} Downloader] Content was gzip compressed, uncompressed successfully", "INFO")
+
+        # Check if the content is a zip file
+        elif 'zip' in content_type:
+            # Create an in-memory file-like object from the binary content
+            zip_file_obj = io.BytesIO(content)
+            with zipfile.ZipFile(zip_file_obj, 'r') as zip_ref:
+                # Reading the names of the files in the zip
+                list_files = zip_ref.namelist()
+
+                # Check if there's exactly one file in the zip
+                if len(list_files) != 1:
+                    error_message = f"ZIP file contains {len(list_files)} files; expected exactly one file."
+                    Logger.log(
+                        f"[{chr(int('f0ed', 16))} Downloader] {error_message}", "ERROR")
+                    raise Exception(error_message)
+
+                # Read the content of the only file in the zip
+                with zip_ref.open(list_files[0], 'r') as file:
+                    content = file.read()
+
         try:
-            return content.decode()
+            decoded_content = content.decode()
+
+            # Save the decoded content if a save path is provided
+            if save_path:
+                os.makedirs(os.path.dirname(save_path), exist_ok=True)
+                with open(save_path, 'w', encoding='utf-8') as file:
+                    file.write(decoded_content)
+                    Logger.log(
+                        f"[{chr(int('f0ed', 16))} Downloader] Text file saved to {save_path}", "INFO")
+
+            return decoded_content
+
         except UnicodeDecodeError:
-            Logger.log(f"[{chr(int('f0ed', 16))} Downloader] Error decoding content as text", "ERROR")
+            Logger.log(
+                f"[{chr(int('f0ed', 16))} Downloader] Error decoding content as text", "ERROR")
             # Handle the error as appropriate
             return None

@@ -14,6 +14,7 @@ from handlers.logger_handler import Logger
 from handlers.config_handler import ConfigHandler
 from handlers.mongodb_handler import MongodbHandler
 
+
 def singleton(cls):
     instances = {}
 
@@ -24,6 +25,7 @@ def singleton(cls):
 
     return get_instance
 
+
 @singleton
 class NvdHandler:
 
@@ -33,7 +35,8 @@ class NvdHandler:
         config_handler = ConfigHandler(config_file)
 
         nvd_config = config_handler.get_nvd_config()
-        self.baseurl = nvd_config.get('url', 'https://services.nvd.nist.gov/rest/json/cves/2.0')
+        self.baseurl = nvd_config.get(
+            'url', 'https://services.nvd.nist.gov/rest/json/cves/2.0')
         self.api_key = nvd_config.get('apikey', '')
         self.public_rate_limit = int(nvd_config.get('public_rate_limit', 5))
         self.api_rate_limit = int(nvd_config.get('apikey_rate_limit', 50))
@@ -50,7 +53,7 @@ class NvdHandler:
             if not os.path.exists(output_directory):
                 os.makedirs(output_directory)
 
-        mongodb_config = config_handler.get_mongodb_config()        
+        mongodb_config = config_handler.get_mongodb_config()
         self.mongodb_handler = MongodbHandler(
             mongodb_config['host'],
             mongodb_config['port'],
@@ -59,10 +62,9 @@ class NvdHandler:
             mongodb_config['password'],
             mongodb_config['authdb'],
             mongodb_config['prefix'])
-    
 
     def make_request(self, step="update", start_index=0, custom_params=None):
-        
+
         @sleep_and_retry
         @limits(calls=self.api_rate_limit, period=self.rolling_window)
         def _make_request_limited():
@@ -76,9 +78,11 @@ class NvdHandler:
             headers = {'apiKey': self.api_key} if self.api_key else {}
 
             # Construct the full URL for error reporting
-            full_url = requests.Request('GET', self.baseurl, headers=headers, params=params).prepare().url
-        
-            response = requests.get(self.baseurl, headers=headers, params=params)
+            full_url = requests.Request(
+                'GET', self.baseurl, headers=headers, params=params).prepare().url
+
+            response = requests.get(
+                self.baseurl, headers=headers, params=params)
             if response.status_code != 200:
                 error_msg = f'Error {response.status_code} when accessing URL: {full_url}'
                 raise Exception(error_msg)
@@ -86,26 +90,35 @@ class NvdHandler:
             try:
                 return response.json()
             except ValueError:
-                raise ValueError(f"Invalid JSON response received from URL: {full_url}")
+                raise ValueError(
+                    f"Invalid JSON response received from URL: {full_url}")
 
         data = _make_request_limited()
-        
-        vulnerabilities = [
-            vul.get('cve', {})
-            for vul in data.get('vulnerabilities', [])
-        ]
+
+        # vulnerabilities = [
+        #     vul.get('cve', {}) for vul in data.get('vulnerabilities', [])
+        # ]
+
+        vulnerabilities = []
+        for vul in data.get('vulnerabilities', []):
+            cve_data = vul.get('cve', {})
+            cve_id = cve_data.get('id')
+            if cve_id:
+                vulnerabilities.append({'id': cve_id, 'nvd': cve_data})
+            else:
+                print("Error: 'id' not found or empty in a record")
 
         if vulnerabilities:
             if step.lower() == "init":
-                self.mongodb_handler.insert_many("cve", vulnerabilities, silent=True)
+                self.mongodb_handler.insert_many(
+                    "cve", vulnerabilities, silent=True)
             else:
-                self.mongodb_handler.bulk_write("cve", vulnerabilities, silent=True)
+                self.mongodb_handler.bulk_write(
+                    "cve", vulnerabilities, silent=True)
 
             self.mongodb_handler.update_status("nvd", silent=True)
-        
-        
-        return data
 
+        return data
 
     def download_all_data(self):
         print("\n"+self.banner)
@@ -113,29 +126,30 @@ class NvdHandler:
         initial_vulnerabilities = initial_response.get('vulnerabilities', [])
 
         total_results = initial_response.get('totalResults', 0)
-        num_pages = (total_results + self.results_per_page - 1) // self.results_per_page
+        num_pages = (total_results + self.results_per_page -
+                     1) // self.results_per_page
 
         all_vulnerabilities = []  # List to store all vulnerabilities
 
         # with tqdm(total=total_results) as pbar:
         with tqdm(total=total_results, initial=len(initial_vulnerabilities)) as pbar:
-            
-            with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_threads) as executor:          
-                # Start from the second page, since the first page was already fetched  
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_threads) as executor:
+                # Start from the second page, since the first page was already fetched
                 futures = [executor.submit(self.make_request, step="init", start_index=(start_index * self.results_per_page))
                            for start_index in range(1, num_pages)]
 
                 for future in concurrent.futures.as_completed(futures):
                     data = future.result()
                     vulnerabilities = data.get('vulnerabilities', [])
-                    all_vulnerabilities.extend(vulnerabilities)  # Append vulnerabilities to the list
+                    # Append vulnerabilities to the list
+                    all_vulnerabilities.extend(vulnerabilities)
                     pbar.update(len(vulnerabilities))
 
-        self.mongodb_handler.ensure_index_on_id("cve","id")
+        self.mongodb_handler.ensure_index_on_id("cve", "id")
 
         if self.save_data:
             utils.write2json("data/nvd_all.json", all_vulnerabilities)
-
 
     def get_updates(self, last_hours=None, follow=True):
         print("\n"+self.banner)
@@ -160,7 +174,8 @@ class NvdHandler:
         duration_str = f"{days} days, {hours % 24} hours, {minutes} minutes" if days else f"{hours % 24} hours, {minutes} minutes"
 
         # Log message with time window and its human-readable duration
-        Logger.log(f"Downloading data for the window: Start - {lastModStartDate_str}, End - {lastModEndDate_str} (Duration: {duration_str})", "INFO")
+        Logger.log(
+            f"Downloading data for the window: Start - {lastModStartDate_str}, End - {lastModEndDate_str} (Duration: {duration_str})", "INFO")
 
         custom_params = {
             "lastModStartDate": lastModStartDate_str,

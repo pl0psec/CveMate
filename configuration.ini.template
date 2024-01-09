@@ -20,6 +20,10 @@ apikey_rate_limit: 50
 rolling_window: 30
 results_per_page:2000
 
+[cwe]
+url: https://cwe.mitre.org/data/xml/cwec_latest.xml.zip
+save_data: False
+
 [cveorg]
 url_init: https://github.com/CVEProject/cvelistV5/archive/refs/heads/main.zip
 url_updates: https://raw.githubusercontent.com/CVEProject/cvelistV5/main/cves/deltaLog.json
@@ -31,6 +35,10 @@ save_data: False
 
 [exploitdb]
 url: https://gitlab.com/exploit-database/exploitdb/-/raw/main/files_exploits.csv?ref_type=heads
+save_data: False
+
+[metasploit]
+url: https://raw.githubusercontent.com/rapid7/metasploit-framework/master/db/modules_metadata_base.json
 save_data: False
 
 [debian]
