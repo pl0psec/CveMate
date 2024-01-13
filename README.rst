@@ -1,5 +1,7 @@
-CveMate
-=======
+.. raw:: html
+   :file: doc/cvemate.svg
+
+
 .. image:: https://img.shields.io/pypi/pyversions/tqdm.svg?logo=python&logoColor=white
    :target: https://pypi.org/project/tqdm
 .. image:: https://img.shields.io/github/license/teuf/cvemate
