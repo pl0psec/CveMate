@@ -1,6 +1,6 @@
 .. raw:: html
-   :file: doc/cvemate.svg
 
+    <img src="doc/cvemate.svg" alt="CVE-Mate Logo"/>
 
 .. image:: https://img.shields.io/pypi/pyversions/tqdm.svg?logo=python&logoColor=white
    :target: https://pypi.org/project/tqdm
