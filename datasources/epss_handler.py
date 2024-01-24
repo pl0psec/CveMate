@@ -1,12 +1,12 @@
-import requests
 import csv
-import os
 import json
+import os
+
+import requests
 
 from handlers import utils
-from handlers.logger_handler import Logger
 from handlers.config_handler import ConfigHandler
-
+from handlers.logger_handler import Logger
 from handlers.mongodb_handler import MongodbHandler
 
 def singleton(cls):
@@ -31,7 +31,7 @@ class EpssHandler:
         self.url = epss_config.get('url', 'https://epss.cyentia.com/epss_scores-current.csv.gz')
         self.save_data = config_handler.get_boolean('epss', 'save_data', False)
 
-        mongodb_config = config_handler.get_mongodb_config()        
+        mongodb_config = config_handler.get_mongodb_config()
         self.mongodb_handler = MongodbHandler(
             mongodb_config['host'],
             mongodb_config['port'],
@@ -40,9 +40,9 @@ class EpssHandler:
             mongodb_config['password'],
             mongodb_config['authdb'],
             mongodb_config['prefix'])
-   
+
     def update(self):
-        print("\n"+self.banner)
+        print('\n'+self.banner)
 
         # Call the new download_file method
         csv_data = utils.download_file(self.url, 'data/epss.csv' if self.save_data else None)
@@ -50,7 +50,7 @@ class EpssHandler:
         # Log the number of exploits and size of the file
         num_epss = len(csv_data.splitlines()) - 1  # Subtract 1 for the header row
         file_size = len(csv_data.encode('utf-8'))  # Size in bytes
-        Logger.log(f"[{chr(int('f14ba', 16))} EPSS] Downloaded {num_epss} exploits, file size: {file_size} bytes", "INFO")
+        Logger.log(f"[{chr(int('f14ba', 16))} EPSS] Downloaded {num_epss} exploits, file size: {file_size} bytes", 'INFO')
 
         # Initialize an empty list for the results
         results = []
@@ -62,7 +62,7 @@ class EpssHandler:
         lines = csv_data.splitlines()
 
         # Skip the first line (metadata/comment)
-        lines = lines[1:]  
+        lines = lines[1:]
 
         reader = csv.DictReader(lines)
 
@@ -73,12 +73,12 @@ class EpssHandler:
             percentile = row['percentile']
 
             # Append the data to results
-            results.append({"id": cve_id, "data": {"epss": {"epss_score": epss_score, "percentile": percentile}}})
+            results.append({'id': cve_id, 'data': {'epss': {'epss_score': epss_score, 'percentile': percentile}}})
             cve_count += 1
 
         # Log the number of CVE codes found
-        Logger.log(f"[{chr(int('f14ba', 16))} EPSS] Total number of CVE codes found: {cve_count}", "INFO")
+        Logger.log(f"[{chr(int('f14ba', 16))} EPSS] Total number of CVE codes found: {cve_count}", 'INFO')
 
-        self.mongodb_handler.update_multiple_documents("cve", results)
-        self.mongodb_handler.update_status("epss")
+        self.mongodb_handler.update_multiple_documents('cve', results)
+        self.mongodb_handler.update_status('epss')
         return results

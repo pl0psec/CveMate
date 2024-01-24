@@ -8,10 +8,10 @@ class Logger:
     RESET = '\033[0m'
 
     # Add a class variable to store the maximum log level
-    max_log_level = "INFO"
+    max_log_level = 'INFO'
 
     # Levels in order of severity
-    levels = {"DEBUG": 1, "INFO": 2, "WARNING": 3, "ERROR": 4, "SUCCESS": 5}
+    levels = {'DEBUG': 1, 'INFO': 2, 'WARNING': 3, 'ERROR': 4, 'SUCCESS': 5}
 
     @staticmethod
     def set_max_log_level(level):
@@ -23,14 +23,14 @@ class Logger:
             raise ValueError(f"Invalid log level: {level}")
 
     @staticmethod
-    def log(message, level="INFO"):
+    def log(message, level='INFO'):
         # Check if the log level of the message is equal or higher than the max_log_level
         if Logger.levels[level] >= Logger.levels[Logger.max_log_level]:
             color = {
-                "INFO": Logger.BLUE,
-                "WARNING": Logger.YELLOW,
-                "ERROR": Logger.RED,
-                "SUCCESS": Logger.GREEN
+                'INFO': Logger.BLUE,
+                'WARNING': Logger.YELLOW,
+                'ERROR': Logger.RED,
+                'SUCCESS': Logger.GREEN
             }.get(level, Logger.BLUE)
 
             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')

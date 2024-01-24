@@ -7,7 +7,7 @@
 	.background{display:none;fill:#231F20;}
 	.text{fill:#1F2329;}
 
-    @media (prefers-color-scheme: dark) {		
+    @media (prefers-color-scheme: dark) {
 		.text{fill:#ADBAC7;}
     }
 	</style>

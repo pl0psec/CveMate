@@ -1,17 +1,20 @@
+import concurrent.futures
+import json
+import os
 import threading
 import time
-import requests
-import concurrent.futures
-import os
-import json
+from datetime import datetime
+from datetime import timedelta
 from queue import Queue
-from ratelimit import limits, sleep_and_retry
-from datetime import datetime, timedelta
+
+import requests
+from ratelimit import limits
+from ratelimit import sleep_and_retry
 from tqdm import tqdm
 
 from handlers import utils
-from handlers.logger_handler import Logger
 from handlers.config_handler import ConfigHandler
+from handlers.logger_handler import Logger
 from handlers.mongodb_handler import MongodbHandler
 
 def singleton(cls):
@@ -46,11 +49,11 @@ class RedhatHandler:
         self.save_data = config_handler.get_boolean('redhat', 'save_data', False)
 
         if self.save_data:
-            output_directory = os.path.dirname("data")
+            output_directory = os.path.dirname('data')
             if not os.path.exists(output_directory):
                 os.makedirs(output_directory)
 
-        mongodb_config = config_handler.get_mongodb_config()        
+        mongodb_config = config_handler.get_mongodb_config()
         self.mongodb_handler = MongodbHandler(
             mongodb_config['host'],
             mongodb_config['port'],
@@ -59,10 +62,10 @@ class RedhatHandler:
             mongodb_config['password'],
             mongodb_config['authdb'],
             mongodb_config['prefix'])
-    
 
-    def make_request(self, step="update", start_index=0, custom_params=None):
-        
+
+    def make_request(self, step='update', start_index=0, custom_params=None):
+
         @sleep_and_retry
         @limits(calls=self.api_rate_limit, period=self.rolling_window)
         def _make_request_limited():
@@ -77,7 +80,7 @@ class RedhatHandler:
 
             # Construct the full URL for error reporting
             full_url = requests.Request('GET', self.baseurl, headers=headers, params=params).prepare().url
-        
+
             response = requests.get(self.baseurl, headers=headers, params=params)
             if response.status_code != 200:
                 error_msg = f'Error {response.status_code} when accessing URL: {full_url}'
@@ -89,26 +92,26 @@ class RedhatHandler:
                 raise ValueError(f"Invalid JSON response received from URL: {full_url}")
 
         data = _make_request_limited()
-        
+
         vulnerabilities = [
             vul.get('cve', {})
             for vul in data.get('vulnerabilities', [])
         ]
 
         if vulnerabilities:
-            if step.lower() == "init":
-                self.mongodb_handler.insert_many("cve", vulnerabilities)
+            if step.lower() == 'init':
+                self.mongodb_handler.insert_many('cve', vulnerabilities)
             else:
-                self.mongodb_handler.bulk_write("cve", vulnerabilities)
+                self.mongodb_handler.bulk_write('cve', vulnerabilities)
 
-            self.mongodb_handler.update_status("redhat")
-        
-        
+            self.mongodb_handler.update_status('redhat')
+
+
         return data
 
 
     def download_all_data(self):
-        print("\n"+self.banner)
+        print('\n'+self.banner)
         initial_response = self.make_request()
         initial_vulnerabilities = initial_response.get('vulnerabilities', [])
 
@@ -119,10 +122,10 @@ class RedhatHandler:
 
         # with tqdm(total=total_results) as pbar:
         with tqdm(total=total_results, initial=len(initial_vulnerabilities)) as pbar:
-            
-            with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_threads) as executor:          
-                # Start from the second page, since the first page was already fetched  
-                futures = [executor.submit(self.make_request, step="init", start_index=(start_index * self.results_per_page))
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_threads) as executor:
+                # Start from the second page, since the first page was already fetched
+                futures = [executor.submit(self.make_request, step='init', start_index=(start_index * self.results_per_page))
                            for start_index in range(1, num_pages)]
 
                 for future in concurrent.futures.as_completed(futures):
@@ -131,15 +134,15 @@ class RedhatHandler:
                     all_vulnerabilities.extend(vulnerabilities)  # Append vulnerabilities to the list
                     pbar.update(len(vulnerabilities))
 
-        self.mongodb_handler.ensure_index_on_id("cve","id")
+        self.mongodb_handler.ensure_index_on_id('cve','id')
 
         if self.save_data:
-            utils.write2json("data/redhat_all.json", all_vulnerabilities)
+            utils.write2json('data/redhat_all.json', all_vulnerabilities)
 
 
     def get_updates(self, last_hours=None, follow=True):
-        print("\n"+self.banner)
-        last_update_time = self.mongodb_handler.get_last_update_time("redhat")
+        print('\n'+self.banner)
+        last_update_time = self.mongodb_handler.get_last_update_time('redhat')
         now_utc = datetime.utcnow()
 
         if last_hours:
@@ -160,14 +163,14 @@ class RedhatHandler:
         duration_str = f"{days} days, {hours % 24} hours, {minutes} minutes" if days else f"{hours % 24} hours, {minutes} minutes"
 
         # Log message with time window and its human-readable duration
-        Logger.log(f"Downloading data for the window: Start - {lastModStartDate_str}, End - {lastModEndDate_str} (Duration: {duration_str})", "INFO")
+        Logger.log(f"Downloading data for the window: Start - {lastModStartDate_str}, End - {lastModEndDate_str} (Duration: {duration_str})", 'INFO')
 
         custom_params = {
-            "lastModStartDate": lastModStartDate_str,
-            "lastModEndDate": lastModEndDate_str
+            'lastModStartDate': lastModStartDate_str,
+            'lastModEndDate': lastModEndDate_str
         }
 
         updates = self.make_request(custom_params=custom_params)
 
         if self.save_data:
-            utils.write2json("data/redhat_update.json", updates)
+            utils.write2json('data/redhat_update.json', updates)

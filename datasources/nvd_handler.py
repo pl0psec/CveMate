@@ -1,21 +1,27 @@
-import threading
-import time
-import requests
+"""
+This module contains the NvdHandler class used for handling operations related
+to the NVD database including data retrieval and processing.
+"""
 import concurrent.futures
 import os
-import json
+import time
+from datetime import datetime
+from datetime import timedelta
 from queue import Queue
-from ratelimit import limits, sleep_and_retry
-from datetime import datetime, timedelta
+
+import requests
+from ratelimit import limits
+from ratelimit import sleep_and_retry
 from tqdm import tqdm
 
 from handlers import utils
-from handlers.logger_handler import Logger
 from handlers.config_handler import ConfigHandler
+from handlers.logger_handler import Logger
 from handlers.mongodb_handler import MongodbHandler
 
 
 def singleton(cls):
+    """A decorator for creating a singleton class."""
     instances = {}
 
     def get_instance(*args, **kwargs):
@@ -28,28 +34,29 @@ def singleton(cls):
 
 @singleton
 class NvdHandler:
+    """A class for handling operations with the NVD database."""
 
     def __init__(self, config_file='configuration.ini'):
+        """Initializes the NvdHandler with configuration settings."""
         self.banner = f"{chr(int('EAD3', 16))} {chr(int('f0626', 16))} CVE from NVD"
 
         config_handler = ConfigHandler(config_file)
-
         nvd_config = config_handler.get_nvd_config()
-        self.baseurl = nvd_config.get(
-            'url', 'https://services.nvd.nist.gov/rest/json/cves/2.0')
+
+        self.baseurl = nvd_config.get('url', 'https://services.nvd.nist.gov/rest/json/cves/2.0')
         self.api_key = nvd_config.get('apikey', '')
         self.public_rate_limit = int(nvd_config.get('public_rate_limit', 5))
         self.api_rate_limit = int(nvd_config.get('apikey_rate_limit', 50))
         self.rolling_window = int(nvd_config.get('rolling_window', 30))
         self.retry_limit = int(nvd_config.get('retry_limit', 3))
-        self.retry_delay = int(nvd_config.get('retry_delay', 10))
+        self.retry_delay = int(nvd_config.get('retry_delay', 30))
         self.results_per_page = int(nvd_config.get('results_per_page', 2000))
         self.max_threads = int(nvd_config.get('max_threads', 10))
 
         self.save_data = config_handler.get_boolean('nvd', 'save_data', False)
 
         if self.save_data:
-            output_directory = os.path.dirname("data")
+            output_directory = os.path.dirname('data')
             if not os.path.exists(output_directory):
                 os.makedirs(output_directory)
 
@@ -63,42 +70,66 @@ class NvdHandler:
             mongodb_config['authdb'],
             mongodb_config['prefix'])
 
-    def make_request(self, step="update", start_index=0, custom_params=None):
-
+    def make_request(self, step='update', start_index=0, custom_params=None):
+        """Makes a request to the NVD API with specified parameters."""
         @sleep_and_retry
         @limits(calls=self.api_rate_limit, period=self.rolling_window)
         def _make_request_limited():
-            params = {
-                'resultsPerPage': self.results_per_page,
-                'startIndex': start_index
-            }
-            if custom_params:
-                params.update(custom_params)
+            nonlocal start_index
+            attempt = 0
 
-            headers = {'apiKey': self.api_key} if self.api_key else {}
+            while attempt < self.retry_limit:
+                try:
+                    response = self._send_request(start_index, custom_params)
+                    response.raise_for_status()
+                    return response.json()
+                except requests.HTTPError as e:
+                    if e.response.status_code == 403:
+                        attempt += 1
+                        time.sleep(self.retry_delay)
+                        continue
+                    raise
+                except ValueError as e:
+                    raise ValueError(f"Invalid JSON response received from NVD API: {e}")
 
-            # Construct the full URL for error reporting
-            full_url = requests.Request(
-                'GET', self.baseurl, headers=headers, params=params).prepare().url
+        return self._process_data(_make_request_limited(), step)
 
-            response = requests.get(
-                self.baseurl, headers=headers, params=params)
-            if response.status_code != 200:
-                error_msg = f'Error {response.status_code} when accessing URL: {full_url}'
-                raise Exception(error_msg)
+    def _send_request(self, start_index, custom_params):
+        """
+        Sends an HTTP GET request to the NVD API.
 
-            try:
-                return response.json()
-            except ValueError:
-                raise ValueError(
-                    f"Invalid JSON response received from URL: {full_url}")
+        Constructs the request with the necessary headers, parameters, and API key. Handles
+        the actual network communication.
 
-        data = _make_request_limited()
+        Parameters:
+        start_index (int): The index from which to start fetching the data in the paginated API.
+        custom_params (dict): Additional parameters to be included in the request.
 
-        # vulnerabilities = [
-        #     vul.get('cve', {}) for vul in data.get('vulnerabilities', [])
-        # ]
+        Returns:
+        requests.Response: The response object received from the API request.
+        """
+        params = {'resultsPerPage': self.results_per_page, 'startIndex': start_index}
+        if custom_params:
+            params.update(custom_params)
 
+        headers = {'apiKey': self.api_key} if self.api_key else {}
+        return requests.get(self.baseurl, headers=headers, params=params, timeout=10)
+
+    def _process_data(self, data, step):
+        """
+        Processes the data received from the NVD API.
+
+        Extracts relevant information from the API response, primarily focusing on
+        vulnerability data. Depending on the operation step (initialization or update),
+        it inserts or updates data in the MongoDB database.
+
+        Parameters:
+        data (dict): The JSON data received from the NVD API.
+        step (str): The operation step, either 'init' for initialization or 'update' for updating the database.
+
+        Returns:
+        dict: The processed data ready for insertion or updating in the database.
+        """
         vulnerabilities = []
         for vul in data.get('vulnerabilities', []):
             cve_data = vul.get('cve', {})
@@ -109,19 +140,23 @@ class NvdHandler:
                 print("Error: 'id' not found or empty in a record")
 
         if vulnerabilities:
-            if step.lower() == "init":
-                self.mongodb_handler.insert_many(
-                    "cve", vulnerabilities, silent=True)
+            if step.lower() == 'init':
+                self.mongodb_handler.insert_many('cve', vulnerabilities, silent=True)
             else:
-                self.mongodb_handler.bulk_write(
-                    "cve", vulnerabilities, silent=True)
+                self.mongodb_handler.bulk_write('cve', vulnerabilities, silent=True)
 
-            self.mongodb_handler.update_status("nvd", silent=True)
+            self.mongodb_handler.update_status('nvd', silent=True)
 
         return data
 
     def download_all_data(self):
-        print("\n"+self.banner)
+        """
+        Downloads all available vulnerability data from the NVD database.
+        This method handles the pagination of the API response and aggregates all
+        vulnerabilities into a single list, which is then optionally saved to a file
+        and sent to a MongoDB database.
+        """
+        print('\n'+self.banner)
         initial_response = self.make_request()
         initial_vulnerabilities = initial_response.get('vulnerabilities', [])
 
@@ -136,7 +171,7 @@ class NvdHandler:
 
             with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_threads) as executor:
                 # Start from the second page, since the first page was already fetched
-                futures = [executor.submit(self.make_request, step="init", start_index=(start_index * self.results_per_page))
+                futures = [executor.submit(self.make_request, step='init', start_index=start_index * self.results_per_page)
                            for start_index in range(1, num_pages)]
 
                 for future in concurrent.futures.as_completed(futures):
@@ -146,14 +181,29 @@ class NvdHandler:
                     all_vulnerabilities.extend(vulnerabilities)
                     pbar.update(len(vulnerabilities))
 
-        self.mongodb_handler.ensure_index_on_id("cve", "id")
+        self.mongodb_handler.ensure_index_on_id('cve', 'id')
 
         if self.save_data:
-            utils.write2json("data/nvd_all.json", all_vulnerabilities)
+            utils.write2json('data/nvd_all.json', all_vulnerabilities)
 
-    def get_updates(self, last_hours=None, follow=True):
-        print("\n"+self.banner)
-        last_update_time = self.mongodb_handler.get_last_update_time("nvd")
+    def get_updates(self, last_hours=None):
+        """
+        Retrieves updates from the NVD database within a specified time window.
+
+        This method calculates the time window based on either a provided number of hours
+        or the time since the last update. It then downloads all new and updated
+        vulnerabilities from the NVD database within this time window.
+
+        Parameters:
+        last_hours (int, optional): The number of hours to look back for updates. If not
+                                    specified, the method uses the time since the last
+                                    successful update.
+
+        Returns:
+        dict: A dictionary containing the updates retrieved from the NVD database.
+        """
+        print('\n'+self.banner)
+        last_update_time = self.mongodb_handler.get_last_update_time('nvd')
         now_utc = datetime.utcnow()
 
         if last_hours:
@@ -175,14 +225,14 @@ class NvdHandler:
 
         # Log message with time window and its human-readable duration
         Logger.log(
-            f"Downloading data for the window: Start - {lastModStartDate_str}, End - {lastModEndDate_str} (Duration: {duration_str})", "INFO")
+            f"Downloading data for the window: Start - {lastModStartDate_str}, End - {lastModEndDate_str} (Duration: {duration_str})", 'INFO')
 
         custom_params = {
-            "lastModStartDate": lastModStartDate_str,
-            "lastModEndDate": lastModEndDate_str
+            'lastModStartDate': lastModStartDate_str,
+            'lastModEndDate': lastModEndDate_str
         }
 
         updates = self.make_request(custom_params=custom_params)
 
         if self.save_data:
-            utils.write2json("data/nvd_update.json", updates)
+            utils.write2json('data/nvd_update.json', updates)

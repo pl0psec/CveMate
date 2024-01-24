@@ -18,7 +18,7 @@ Data sources
 
 CveMate currently utilizes the following sources for vulnerability data:
 
-.. list-table:: 
+.. list-table::
    :widths: 20 60 20
    :header-rows: 1
 
@@ -34,8 +34,8 @@ CveMate currently utilizes the following sources for vulnerability data:
    * - **CWE**
      - Common Weakness Enumeration (CWE™) is a list of software and hardware weaknesses.
 
-       ‼️ Current implementation only captures basic CWE details. 
-       
+       ‼️ Current implementation only captures basic CWE details.
+
        🆘 Improvement needed to capture full details. Help is welcome :)
      - `CWE v4.13 <https://cwe.mitre.org/data/downloads.html>`_
    * - **Exploit-DB**
@@ -43,7 +43,7 @@ CveMate currently utilizes the following sources for vulnerability data:
      - `exploit-db <https://gitlab.com/exploit-database/exploitdb>`_
    * - **Metasploit**
      - The Metasploit Framework contains a suite of tools that you can use to test security vulnerabilities, enumerate networks, execute attacks, and evade detection.
-     - `Metasploit-framework <https://docs.rapid7.com/metasploit/msf-overview>`_ 
+     - `Metasploit-framework <https://docs.rapid7.com/metasploit/msf-overview>`_
    * - **EPSS**
      - Estimate of the probability of exploitation.
      - `EPSS <https://www.first.org/epss/data_stats>`_

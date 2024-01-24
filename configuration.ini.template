@@ -4,7 +4,7 @@ loglevel: info
 [mongodb]
 Host: 127.0.0.1
 Port: 27017
-DB: mydb
+DB: cvemate
 Username: admin
 Password: admin
 AuthDB: admin
@@ -14,7 +14,9 @@ Prefix: cvemate_
 url: https://services.nvd.nist.gov/rest/json/cves/2.0
 save_data: False
 max_threads: 10
-apikey: ""
+retry_limit: 3
+retry_delay: 30
+apikey:
 public_rate_limit: 5
 apikey_rate_limit: 50
 rolling_window: 30

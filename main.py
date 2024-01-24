@@ -1,19 +1,17 @@
 """This module is the main entry point for the CVE Data Handling Script."""
-
-import os
 import argparse
+import os
 import time
 
-from handlers.logger_handler import Logger
-from handlers.config_handler import ConfigHandler
-
-from datasources.cwe_handler import CweHandler
-from datasources.nvd_handler import NvdHandler
 from datasources.cveorg_handler import CveDotOrgHandler
+from datasources.cwe_handler import CweHandler
+from datasources.debian_handler import DebianHandler
+from datasources.epss_handler import EpssHandler
 from datasources.exploitdb_handler import ExploitdbHandler
 from datasources.metasploit_handler import MetasploitHandler
-from datasources.epss_handler import EpssHandler
-from datasources.debian_handler import DebianHandler
+from datasources.nvd_handler import NvdHandler
+from handlers.config_handler import ConfigHandler
+from handlers.logger_handler import Logger
 
 class WideFormatter(argparse.HelpFormatter):
     """Extend to 120 columns"""
@@ -22,16 +20,16 @@ class WideFormatter(argparse.HelpFormatter):
 
 def parse_args():
     """Parse and return command line arguments."""
-    parser = argparse.ArgumentParser(description="CVE Data Handling Script",
+    parser = argparse.ArgumentParser(description='CVE Data Handling Script',
                                      formatter_class=WideFormatter)
-    parser.add_argument("-d", "--debug", action="store_true",
-                        help="Set log level to DEBUG")
-    parser.add_argument("-c", "--config", default="configuration.ini",
-                        help="Specify a configuration file")
-    parser.add_argument("--init", action="store_true",
-                        help="Fetch all CVE data")
-    parser.add_argument("--update", action="store_true",
-                        help="Fetch updates for CVE data")
+    parser.add_argument('-d', '--debug', action='store_true',
+                        help='Set log level to DEBUG')
+    parser.add_argument('-c', '--config', default='configuration.ini',
+                        help='Specify a configuration file')
+    parser.add_argument('--init', action='store_true',
+                        help='Fetch all CVE data')
+    parser.add_argument('--update', action='store_true',
+                        help='Fetch updates for CVE data')
     return parser.parse_args(), parser
 
 
@@ -45,11 +43,11 @@ def main():
     cvemate_config = config_handler.get_cvemate_config()
 
     if args.debug:
-        Logger.set_max_log_level("DEBUG")
+        Logger.set_max_log_level('DEBUG')
     else:
         Logger.set_max_log_level(cvemate_config.get('loglevel', 'INFO'))
 
-    output_directory = "data"
+    output_directory = 'data'
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
 
@@ -66,7 +64,7 @@ def main():
             nvd.download_all_data()
 
         elif args.update:
-            nvd.get_updates(follow=False)
+            nvd.get_updates()
 
         # Add missing CVE from CVE.org (Usually unconfirmed CVE)
         cveorg = CveDotOrgHandler()
@@ -92,11 +90,11 @@ def main():
         end_time = time.time()
         elapsed_time = end_time - start_time
         Logger.log(f" {chr(int('f253', 16))} Execution completed in {elapsed_time:.2f} seconds.",
-                   "INFO")
+                   'INFO')
 
     else:
         parser.print_help()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

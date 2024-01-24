@@ -1,4 +1,5 @@
 import configparser
+import os
 
 def singleton(cls):
     instances = {}
@@ -22,8 +23,17 @@ class ConfigHandler:
         return {k: v for k, v in self.config['cvemate'].items()}
 
     def get_mongodb_config(self):
-        """ Retrieve the mongodb configuration. """
-        return {k: v for k, v in self.config['mongodb'].items()}
+        """ Retrieve the mongodb configuration, overwritten by env vars if defined. """
+        mongodb_config = {
+            'host': os.getenv('MONGODB_HOST', self.config['mongodb']['Host']),
+            'port': os.getenv('MONGODB_PORT', self.config['mongodb']['Port']),
+            'db': os.getenv('MONGODB_DB', self.config['mongodb']['DB']),
+            'username': os.getenv('MONGODB_USERNAME', self.config['mongodb']['Username']),
+            'password': os.getenv('MONGODB_PASSWORD', self.config['mongodb']['Password']),
+            'authdb': os.getenv('MONGODB_AUTHDB', self.config['mongodb']['AuthDB']),
+            'prefix': os.getenv('MONGODB_PREFIX', self.config['mongodb']['Prefix'])
+        }
+        return mongodb_config
 
     def get_nvd_config(self):
         """ Retrieve the nvd configuration. """

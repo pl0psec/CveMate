@@ -1,15 +1,17 @@
 """This module is the main entry point for the CVE.org Data Handling."""
-
 import json
 import zipfile
-from datetime import datetime, timezone
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from tqdm import tqdm
+from concurrent.futures import as_completed
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
+from datetime import timezone
+
 import requests
+from tqdm import tqdm
 
 from handlers import utils
-from handlers.logger_handler import Logger
 from handlers.config_handler import ConfigHandler
+from handlers.logger_handler import Logger
 from handlers.mongodb_handler import MongodbHandler
 
 
@@ -75,18 +77,18 @@ class CveDotOrgHandler:
                         with zip_ref.open(file) as json_file:
                             data = json.load(json_file)
                             cve_data.append(
-                                {"id": cve_id, "data": {"cve": data}})
+                                {'id': cve_id, 'data': {'cve': data}})
 
         if cve_data:
-            self.mongodb_handler.update_multiple_documents("cve", cve_data)
-        self.mongodb_handler.update_status("cveorg")
+            self.mongodb_handler.update_multiple_documents('cve', cve_data)
+        self.mongodb_handler.update_status('cveorg')
 
         return cve_data
 
     def init(self):
-        print("\n"+self.banner+" - init")
+        print('\n'+self.banner+' - init')
 
-        Logger.log(f"[{chr(int('f0626', 16))} cveorg] Downloading {self.url_init}", "INFO")
+        Logger.log(f"[{chr(int('f0626', 16))} cveorg] Downloading {self.url_init}", 'INFO')
         zipped_file_path = utils.download_file(
             self.url_init,
             save_path='data/cveorg_main.zip' if self.save_data else None,
@@ -100,20 +102,20 @@ class CveDotOrgHandler:
 
     def update(self):
         # Get the last update time
-        last_update = self.mongodb_handler.get_last_update_time("cveorg")
+        last_update = self.mongodb_handler.get_last_update_time('cveorg')
 
         if last_update is None:
             result = self.init()
             return result
 
         else:
-            print("\n" + self.banner+" - update")
+            print('\n' + self.banner+' - update')
 
             # Convert from string to datetime
             last_update = last_update.replace(tzinfo=timezone.utc)
 
             Logger.log(
-                f"[{chr(int('f14ba', 16))} cveorg] Downloading {self.url_updates}", "INFO")
+                f"[{chr(int('f14ba', 16))} cveorg] Downloading {self.url_updates}", 'INFO')
             json_updates = utils.download_file(
                 self.url_updates,
                 save_path='data/cveorg_deltaLog.json' if self.save_data else None)
@@ -131,7 +133,7 @@ class CveDotOrgHandler:
 
             else:
                 Logger.log(
-                    f"[{chr(int('f14ba', 16))} cveorg] Processing updates ... ", "INFO")
+                    f"[{chr(int('f14ba', 16))} cveorg] Processing updates ... ", 'INFO')
                 updated_cve_ids = []
                 new_cve_ids = []
                 github_links = []
@@ -153,10 +155,10 @@ class CveDotOrgHandler:
 
                             github_links.append(item['githubLink'])
 
-                Logger.log(f"[{chr(int('f14ba', 16))} cveorg] {len(new_cve_ids)} new CVE: {new_cve_ids}",
-                           "INFO")
-                Logger.log(f"[{chr(int('f14ba', 16))} cveorg] {len(updated_cve_ids)} updated CVE: {updated_cve_ids}",
-                           "INFO")
+                Logger.log(f"[{chr(int('f14ba', 16))} cveorg] {len(new_cve_ids)} new CVE ",'INFO')
+                Logger.log(f"[{chr(int('f14ba', 16))} cveorg] {new_cve_ids}", 'DEBUG')
+                Logger.log(f"[{chr(int('f14ba', 16))} cveorg] {len(updated_cve_ids)} updated CVE",'INFO')
+                Logger.log(f"[{chr(int('f14ba', 16))} cveorg] {updated_cve_ids}", 'DEBUG')
 
                 # anything to update ?
                 if github_links:
@@ -173,17 +175,17 @@ class CveDotOrgHandler:
                         for future in tqdm(
                                 as_completed(future_to_link),
                                 total=len(future_to_link),
-                                desc="Downloading CVE data"):
+                                desc='Downloading CVE data'):
 
                             link, data = future.result()
                             if data:
                                 cve_data.append(
-                                    {"id": link.split('/')[-1], "data": {"cve": data}})
+                                    {'id': link.split('/')[-1], 'data': {'cve': data}})
 
                     if cve_data:
                         self.mongodb_handler.update_multiple_documents(
-                            "cve", cve_data)
+                            'cve', cve_data)
 
-                self.mongodb_handler.update_status("cveorg")
+                self.mongodb_handler.update_status('cveorg')
 
             return updated_cve_ids

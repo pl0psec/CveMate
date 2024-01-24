@@ -1,9 +1,8 @@
 import json
 
 from handlers import utils
-from handlers.logger_handler import Logger
 from handlers.config_handler import ConfigHandler
-
+from handlers.logger_handler import Logger
 from handlers.mongodb_handler import MongodbHandler
 
 
@@ -25,7 +24,7 @@ class MetasploitHandler:
         self.banner = f"{chr(int('EAD3', 16))} {chr(int('eaaf', 16))} Metasploit"
 
         config_handler = ConfigHandler(config_file)
-        metasploit_config = config_handler.get_config_section("metasploit")
+        metasploit_config = config_handler.get_config_section('metasploit')
         self.url = metasploit_config.get(
             'url', 'https://raw.githubusercontent.com/rapid7/metasploit-framework/master/db/modules_metadata_base.json')
         self.save_data = config_handler.get_boolean(
@@ -42,7 +41,7 @@ class MetasploitHandler:
             mongodb_config['prefix'])
 
     def update(self):
-        print("\n"+self.banner)
+        print('\n'+self.banner)
 
         # Call the new download_file method
         json_data = utils.download_file(
@@ -58,23 +57,23 @@ class MetasploitHandler:
         for key, value in json_dict.items():
             if 'references' in value:
                 for reference in value['references']:
-                    if reference.startswith("CVE-"):
+                    if reference.startswith('CVE-'):
                         # Construct a new dictionary for each CVE
                         cve_dict = {
-                            "id": reference,
-                            "data": {
-                                "metasploit":{ "key": key,
-                                "data": value}                               
+                            'id': reference,
+                            'data': {
+                                'metasploit':{ 'key': key,
+                                'data': value}
                             }
                         }
                         # Add the dictionary to the array
                         updated_data.append(cve_dict)
 
         # Log the number of CVE codes found
-        Logger.log(f"[{chr(int('eaaf', 16))} Metasploit] Total number of Exploit codes found: {len(updated_data)}", "INFO")
+        Logger.log(f"[{chr(int('eaaf', 16))} Metasploit] Total number of Exploit codes found: {len(updated_data)}", 'INFO')
         # print(updated_data)
         self.mongodb_handler.update_multiple_documents(
-            "cve", updated_data)
-        self.mongodb_handler.update_status("metasploit")
+            'cve', updated_data)
+        self.mongodb_handler.update_status('metasploit')
 
         return updated_data

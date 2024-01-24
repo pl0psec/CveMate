@@ -1,11 +1,10 @@
 import json
-import xml.etree.ElementTree as ET
 import re
+import xml.etree.ElementTree as ET
 
 from handlers import utils
-from handlers.logger_handler import Logger
 from handlers.config_handler import ConfigHandler
-
+from handlers.logger_handler import Logger
 from handlers.mongodb_handler import MongodbHandler
 
 
@@ -27,7 +26,7 @@ class CweHandler:
         self.banner = f"{chr(int('EAD3', 16))} {chr(int('eb83', 16))} CWE"
         config_handler = ConfigHandler(config_file)
 
-        cwe_config = config_handler.get_config_section("cwe")
+        cwe_config = config_handler.get_config_section('cwe')
         self.url = cwe_config.get(
             'url', 'https://cwe.mitre.org/data/xml/cwec_latest.xml.zip')
         self.save_data = config_handler.get_boolean('cwe', 'save_data', False)
@@ -60,7 +59,8 @@ class CweHandler:
     def xhtml_to_html(self, text):
         """ Convert XHTML tags (including self-closing tags) to HTML tags """
         return re.sub(r'<\/?xhtml:([a-zA-Z]+)(\/?)>',
-                      lambda m: f'<{m.group(1)}{" />" if m.group(2) else ">"}', text)
+                    lambda m: f'<{m.group(1)}{" />" if m.group(2) else ">"}', text)
+
 
     def xml2json(self, xml_data):
         try:
@@ -107,7 +107,7 @@ class CweHandler:
             return []
 
     def update(self):
-        print("\n"+self.banner)
+        print('\n'+self.banner)
 
         # Call the new download_file method
         xml_data = utils.download_file(
@@ -117,7 +117,9 @@ class CweHandler:
         # print(json_data[-1])
 
         if json_data:
-            results = self.mongodb_handler.insert_many("cwe", json_data)
+            # results = self.mongodb_handler.insert_many('cwe', json_data)
+            results = self.mongodb_handler.update_multiple_documents('cwe', json_data)
 
-        self.mongodb_handler.update_status("cwe")
+
+        self.mongodb_handler.update_status('cwe')
         return results

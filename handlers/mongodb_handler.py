@@ -1,11 +1,14 @@
-from datetime import datetime
-import _testimportmultiple
+import sys
 import time
+from datetime import datetime
 
-from pymongo import MongoClient, ASCENDING
-from pymongo import UpdateOne
-from pymongo.errors import ConnectionFailure, PyMongoError
+import _testimportmultiple
 from bson import ObjectId
+from pymongo import ASCENDING
+from pymongo import MongoClient
+from pymongo import UpdateOne
+from pymongo.errors import ConnectionFailure
+from pymongo.errors import PyMongoError
 
 from handlers.logger_handler import Logger  # Import the Logger class
 
@@ -29,12 +32,11 @@ class MongodbHandler:
                 f"mongodb://{user}:{password}@{url}:{port}/{authdb}")
             self.db = self.client[db_name]
             self.prefix = prefix
-            self.client.admin.command('ismaster')  # Test the connection
-            Logger.log(
-                f"[{chr(int('e7a4', 16))} MongoDB] connection established successfully.", "SUCCESS")
+            self.client.admin.command('ismaster')  # Test the connection #FIXME !
+            Logger.log(f"[{chr(int('e7a4', 16))} MongoDB] connection established successfully.", 'SUCCESS')
         except ConnectionFailure:
-            Logger.log(
-                f"[{chr(int('e7a4', 16))} MongoDB] connection failed", "ERROR")
+            Logger.log(f"[{chr(int('e7a4', 16))} MongoDB] connection failed", 'ERROR')
+            sys.exit(1)  # Exit with a non-zero status to indicate an error
 
     def ensure_index_on_id(self, collection, field_name):
         try:
@@ -50,16 +52,16 @@ class MongodbHandler:
 
             if id_indexed:
                 Logger.log(
-                    f"[{chr(int('e7a4', 16))} MongoDB] Collection {prefixed_collection} Index on {field_name} already exists.", "INFO")
+                    f"[{chr(int('e7a4', 16))} MongoDB] Collection {prefixed_collection} Index on {field_name} already exists.", 'INFO')
             else:
                 # Create an index on 'id' field
                 collection.create_index([(field_name, ASCENDING)])
                 Logger.log(
-                    f"[{chr(int('e7a4', 16))} MongoDB] Collection {prefixed_collection} Index on {field_name} created.", "INFO")
+                    f"[{chr(int('e7a4', 16))} MongoDB] Collection {prefixed_collection} Index on {field_name} created.", 'INFO')
 
         except PyMongoError as e:
             Logger.log(
-                f"[{chr(int('e7a4', 16))} MongoDB] Error for {prefixed_collection}: {e}", "ERROR")
+                f"[{chr(int('e7a4', 16))} MongoDB] Error for {prefixed_collection}: {e}", 'ERROR')
 
     def insert(self, collection, json_data):
         try:
@@ -67,11 +69,11 @@ class MongodbHandler:
             result = self.db[prefixed_collection].insert_one(
                 json_data).inserted_id
             Logger.log(
-                f"[{chr(int('e7a4', 16))} MongoDB] Document inserted successfully in {collection}. ID: {result}", "SUCCESS")
+                f"[{chr(int('e7a4', 16))} MongoDB] Document inserted successfully in {collection}. ID: {result}", 'SUCCESS')
             return result
         except PyMongoError as e:
             Logger.log(
-                f"[{chr(int('e7a4', 16))} MongoDB] Error inserting document in {collection}: {e}", "ERROR")
+                f"[{chr(int('e7a4', 16))} MongoDB] Error inserting document in {collection}: {e}", 'ERROR')
 
     def insert_many(self, collection, json_data_list, silent=False):
         try:
@@ -84,11 +86,11 @@ class MongodbHandler:
             duration = end_time - start_time  # Calculate duration
             if not silent:
                 Logger.log(
-                    f"[{chr(int('e7a4', 16))} MongoDB] {len(result)} documents inserted in {collection}. Time taken: {duration:.2f} seconds.", "SUCCESS")
+                    f"[{chr(int('e7a4', 16))} MongoDB] {len(result)} documents inserted in {collection}. Time taken: {duration:.2f} seconds.", 'SUCCESS')
             return result
         except PyMongoError as e:
             Logger.log(
-                f"[{chr(int('e7a4', 16))} MongoDB] Error inserting documents in {collection}: {e}", "ERROR")
+                f"[{chr(int('e7a4', 16))} MongoDB] Error inserting documents in {collection}: {e}", 'ERROR')
 
     def bulk_write(self, collection, json_data_list, silent=False):
         try:
@@ -110,26 +112,26 @@ class MongodbHandler:
                 duration = end_time - start_time  # Calculate duration
                 if not silent:
                     Logger.log(
-                        f"[{chr(int('e7a4', 16))} MongoDB] {updated_count} documents updated and {upserted_count} documents inserted in {collection}. Time taken: {duration:.2f} seconds.", "SUCCESS")
+                        f"[{chr(int('e7a4', 16))} MongoDB] {updated_count} documents updated and {upserted_count} documents inserted in {collection}. Time taken: {duration:.2f} seconds.", 'SUCCESS')
             else:
                 Logger.log(
-                    f"[{chr(int('e7a4', 16))} MongoDB] No valid operations to perform in {collection}.", "WARNING")
+                    f"[{chr(int('e7a4', 16))} MongoDB] No valid operations to perform in {collection}.", 'WARNING')
             return result
         except PyMongoError as e:
             Logger.log(
-                f"[{chr(int('e7a4', 16))} MongoDB] Error upserting/inserting documents in {collection}: {e}", "ERROR")
+                f"[{chr(int('e7a4', 16))} MongoDB] Error upserting/inserting documents in {collection}: {e}", 'ERROR')
 
     def findOneAndUpdate(self, id, collection, json_data):
         try:
             prefixed_collection = self.prefix + collection
             result = self.db[prefixed_collection].find_one_and_update(
-                {"_id": ObjectId(id)}, {"$set": json_data})
+                {'_id': ObjectId(id)}, {'$set': json_data})
             Logger.log(
-                f"[{chr(int('e7a4', 16))} MongoDB] Document with ID {id} updated successfully in {collection}.", "SUCCESS")
+                f"[{chr(int('e7a4', 16))} MongoDB] Document with ID {id} updated successfully in {collection}.", 'SUCCESS')
             return result
         except PyMongoError as e:
             Logger.log(
-                f"[{chr(int('e7a4', 16))} MongoDB] Error updating document in {collection}: {e}", "ERROR")
+                f"[{chr(int('e7a4', 16))} MongoDB] Error updating document in {collection}: {e}", 'ERROR')
 
     def update_multiple_documents(self, collection, updates_list):
         """
@@ -156,14 +158,14 @@ class MongodbHandler:
                 end_time = time.time()  # End timing
                 duration = end_time - start_time  # Calculate duration
                 Logger.log(
-                    f"[{chr(int('e7a4', 16))} MongoDB] {len(operations)} documents updated successfully in {collection}. Time taken: {duration:.2f} seconds.", "SUCCESS")
+                    f"[{chr(int('e7a4', 16))} MongoDB] {len(operations)} documents updated successfully in {collection}. Time taken: {duration:.2f} seconds.", 'SUCCESS')
                 return result
             else:
                 Logger.log(
-                    f"[{chr(int('e7a4', 16))} MongoDB] No valid operations to perform in {collection}.", "WARNING")
+                    f"[{chr(int('e7a4', 16))} MongoDB] No valid operations to perform in {collection}.", 'WARNING')
         except PyMongoError as e:
             Logger.log(
-                f"[{chr(int('e7a4', 16))} MongoDB] Error updating multiple documents in {collection}: {e}", "ERROR")
+                f"[{chr(int('e7a4', 16))} MongoDB] Error updating multiple documents in {collection}: {e}", 'ERROR')
 
     def update_or_create_multiple_documents(self, collection, updates_list):
         """
@@ -187,28 +189,28 @@ class MongodbHandler:
                 start_time = time.time()  # Start timing
 
                 result = self.db[prefixed_collection].bulk_write(operations)
-                
+
                 end_time = time.time()  # End timing
                 duration = end_time - start_time  # Calculate duration
                 Logger.log(
-                    f"[{chr(int('e7a4', 16))} MongoDB] {len(operations)} documents updated or created successfully in {collection}. Time taken: {duration:.2f} seconds.", "SUCCESS")
+                    f"[{chr(int('e7a4', 16))} MongoDB] {len(operations)} documents updated or created successfully in {collection}. Time taken: {duration:.2f} seconds.", 'SUCCESS')
                 return result
             else:
                 Logger.log(
-                    f"[{chr(int('e7a4', 16))} MongoDB] No valid operations to perform in {collection}.", "WARNING")
+                    f"[{chr(int('e7a4', 16))} MongoDB] No valid operations to perform in {collection}.", 'WARNING')
         except PyMongoError as e:
             Logger.log(
-                f"[{chr(int('e7a4', 16))} MongoDB] Error updating or creating multiple documents in {collection}: {e}", "ERROR")
+                f"[{chr(int('e7a4', 16))} MongoDB] Error updating or creating multiple documents in {collection}: {e}", 'ERROR')
 
     def drop(self, collection):
         try:
             prefixed_collection = self.prefix + collection
             self.db[prefixed_collection].drop()
             Logger.log(
-                f"[{chr(int('e7a4', 16))} MongoDB] Collection {collection} dropped successfully.", "SUCCESS")
+                f"[{chr(int('e7a4', 16))} MongoDB] Collection {collection} dropped successfully.", 'SUCCESS')
         except PyMongoError as e:
             Logger.log(f"[{chr(int('e7a4', 16))} MongoDB] Error dropping collection {collection}: {e}",
-                       "ERROR")
+                       'ERROR')
 
     def create_index(self, collection, index_fields):
         try:
@@ -217,21 +219,21 @@ class MongodbHandler:
                 [(field, 1) for field in index_fields]
             )
             Logger.log(
-                f"[{chr(int('e7a4', 16))} MongoDB] Index {index_name} created successfully on {collection}.", "SUCCESS")
+                f"[{chr(int('e7a4', 16))} MongoDB] Index {index_name} created successfully on {collection}.", 'SUCCESS')
             return index_name
         except PyMongoError as e:
             Logger.log(f"[{chr(int('e7a4', 16))} MongoDB] Error creating index on {collection}: {e}",
-                       "ERROR")
+                       'ERROR')
 
     def list_prefixed_collections(self):
         try:
             all_collections = self.db.list_collection_names()
             prefixed_collections = [
                 col for col in all_collections if col.startswith(self.prefix)]
-            Logger.log("Prefixed collections listed successfully.", "SUCCESS")
+            Logger.log('Prefixed collections listed successfully.', 'SUCCESS')
             return prefixed_collections
         except PyMongoError as e:
-            Logger.log("Error listing prefixed collections: {e}", "ERROR")
+            Logger.log('Error listing prefixed collections: {e}', 'ERROR')
 
     def update_status(self, data_source, silent=False):
         """
@@ -240,22 +242,22 @@ class MongodbHandler:
         data_source (str): The name of the data source.
         """
         try:
-            prefixed_collection = self.prefix + "update_status"
+            prefixed_collection = self.prefix + 'update_status'
             current_time_utc = datetime.utcnow()
 
             result = self.db[prefixed_collection].find_one_and_update(
-                {"data_source": data_source},
-                {"$set": {"last_updated": current_time_utc}},
+                {'data_source': data_source},
+                {'$set': {'last_updated': current_time_utc}},
                 upsert=True,
                 return_document=True
             )
             if not silent:
                 Logger.log(f"[{chr(int('e7a4', 16))} MongoDB] Update status for '{data_source}' set to {current_time_utc}.",
-                           "SUCCESS")
+                           'SUCCESS')
             return result
         except PyMongoError as e:
             Logger.log(
-                f"Error updating status for data source '{data_source}': {e}", "ERROR")
+                f"Error updating status for data source '{data_source}': {e}", 'ERROR')
 
     def get_last_update_time(self, data_source):
         """
@@ -266,28 +268,28 @@ class MongodbHandler:
         datetime: The datetime of the last update or None if not found.
         """
         try:
-            status_collection = self.prefix + "update_status"
+            status_collection = self.prefix + 'update_status'
             status = self.db[status_collection].find_one(
-                {"data_source": data_source})
+                {'data_source': data_source})
             return status['last_updated'] if status else None
         except PyMongoError as e:
             Logger.log(f"Error fetching last update time for data source '{data_source}': {e}",
-                       "ERROR")
+                       'ERROR')
             return None
 
     def get_all_id(self, prefix=None):
         ids = []
         try:
-            cve_collection = self.prefix + "cve"
+            cve_collection = self.prefix + 'cve'
 
             # Define the query
             if prefix is not None:
-                query = {"id": {"$regex": f"^{prefix}"}}
+                query = {'id': {'$regex': f"^{prefix}"}}
             else:
                 query = {}
 
             # Execute the query
-            results = self.db[cve_collection].find(query, {"_id": 0, "id": 1})
+            results = self.db[cve_collection].find(query, {'_id': 0, 'id': 1})
 
             # Extract the 'id' field from each document
             for doc in results:
@@ -296,6 +298,6 @@ class MongodbHandler:
 
         except Exception as e:
             Logger.log(
-                f"Error fetching all if from '{cve_collection}': {e}", "ERROR")
+                f"Error fetching all if from '{cve_collection}': {e}", 'ERROR')
 
         return ids
