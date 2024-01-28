@@ -59,14 +59,36 @@ Any suggestion ?
 Prerequisites
 -------------
 
-Before you begin, ensure your environment is set up:
+Before you begin, ensure your environment is set up. There are two options to configure CveMate:
+
+Option 1: Quick Setup (Environment Variables)
+---------------------------------------------
+
+For a quick setup, you can configure the database connection using environment variables. Set the following environment variables as per your MongoDB setup:
+
+- `MONGODB_HOST`: MongoDB host (default: value from `configuration.ini`)
+- `MONGODB_PORT`: MongoDB port (default: value from `configuration.ini`)
+- `MONGODB_DB`: MongoDB database name (default: value from `configuration.ini`)
+- `MONGODB_USERNAME`: MongoDB username (default: value from `configuration.ini`)
+- `MONGODB_PASSWORD`: MongoDB password (default: value from `configuration.ini`)
+- `MONGODB_AUTHDB`: MongoDB authentication database (default: value from `configuration.ini`)
+- `MONGODB_PREFIX`: MongoDB collection prefix (default: value from `configuration.ini`)
+
+This method allows you to quickly set up only the database connection without the need to modify the `configuration.ini` file.
+
+Option 2: Full Configuration (configuration.ini)
+------------------------------------------------
+
+For a more comprehensive setup, including additional configuration options beyond the database:
 
 1. **Create a Configuration File**
-   Copy and edit the configuration file with your MongoDB details:
+   Copy and edit the `configuration.ini` file with your MongoDB details and any other configurations for CveMate:
 
    .. code-block:: sh
 
        cp configuration.ini.template configuration.ini
+
+   This method provides more configuration options than the quick setup.
 
 2. **Install Dependencies**
    Install required Python packages for CveMate:
@@ -74,6 +96,9 @@ Before you begin, ensure your environment is set up:
    .. code-block:: sh
 
        pip3 install -r requirements.txt
+
+Choose the option that best suits your setup needs. Option 1 is recommended for a simpler, database-only setup, while Option 2 is preferable for more comprehensive configuration requirements.
+
 
 Populate CveMate
 ----------------
