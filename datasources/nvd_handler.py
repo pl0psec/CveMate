@@ -53,12 +53,7 @@ class NvdHandler:
         self.results_per_page = int(nvd_config.get('results_per_page', 2000))
         self.max_threads = int(nvd_config.get('max_threads', 10))
 
-        self.save_data = config_handler.get_boolean('nvd', 'save_data', False)
-
-        if self.save_data:
-            output_directory = os.path.dirname('data')
-            if not os.path.exists(output_directory):
-                os.makedirs(output_directory)
+        self.save_data = config_handler.get_boolean('cvemate', 'save_data', False)
 
         mongodb_config = config_handler.get_mongodb_config()
         self.mongodb_handler = MongodbHandler(

@@ -29,7 +29,7 @@ class CweHandler:
         cwe_config = config_handler.get_config_section('cwe')
         self.url = cwe_config.get(
             'url', 'https://cwe.mitre.org/data/xml/cwec_latest.xml.zip')
-        self.save_data = config_handler.get_boolean('cwe', 'save_data', False)
+        self.save_data = config_handler.get_boolean('cvemate', 'save_data', False)
 
         mongodb_config = config_handler.get_mongodb_config()
         self.mongodb_handler = MongodbHandler(

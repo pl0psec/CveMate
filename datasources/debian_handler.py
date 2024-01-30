@@ -33,7 +33,7 @@ class DebianHandler:
         self.url = debian_config.get(
             'url', 'https://security-tracker.debian.org/tracker/data/json')
         self.save_data = config_handler.get_boolean(
-            'debian', 'save_data', False)
+            'cvemate', 'save_data', False)
 
         mongodb_config = config_handler.get_mongodb_config()
         self.mongodb_handler = MongodbHandler(

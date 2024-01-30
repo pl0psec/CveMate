@@ -42,7 +42,7 @@ class CveDotOrgHandler:
             'url_updates',
             'https://raw.githubusercontent.com/CVEProject/cvelistV5/main/cves/deltaLog.json')
         self.save_data = config_handler.get_boolean(
-            'cveorg', 'save_data', False)
+            'cvemate', 'save_data', False)
 
         mongodb_config = config_handler.get_mongodb_config()
         self.mongodb_handler = MongodbHandler(

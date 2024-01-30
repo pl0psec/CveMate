@@ -29,7 +29,7 @@ class EpssHandler:
 
         epss_config = config_handler.get_epss_config()
         self.url = epss_config.get('url', 'https://epss.cyentia.com/epss_scores-current.csv.gz')
-        self.save_data = config_handler.get_boolean('epss', 'save_data', False)
+        self.save_data = config_handler.get_boolean('cvemate', 'save_data', False)
 
         mongodb_config = config_handler.get_mongodb_config()
         self.mongodb_handler = MongodbHandler(

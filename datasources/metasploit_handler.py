@@ -28,7 +28,7 @@ class MetasploitHandler:
         self.url = metasploit_config.get(
             'url', 'https://raw.githubusercontent.com/rapid7/metasploit-framework/master/db/modules_metadata_base.json')
         self.save_data = config_handler.get_boolean(
-            'metasploit', 'save_data', False)
+            'cvemate', 'save_data', False)
 
         mongodb_config = config_handler.get_mongodb_config()
         self.mongodb_handler = MongodbHandler(

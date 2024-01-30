@@ -41,15 +41,17 @@ def main():
     config_file = args.config
     config_handler = ConfigHandler(config_file)
     cvemate_config = config_handler.get_cvemate_config()
+    save_data = config_handler.get_boolean('cvemate', 'save_data', False)
 
     if args.debug:
         Logger.set_max_log_level('DEBUG')
     else:
         Logger.set_max_log_level(cvemate_config.get('loglevel', 'INFO'))
 
-    output_directory = 'data'
-    if not os.path.exists(output_directory):
-        os.makedirs(output_directory)
+    if save_data:
+        output_directory = 'data'
+        if not os.path.exists(output_directory):
+            os.makedirs(output_directory)
 
     if args.update or args.init:
         start_time = time.time()
