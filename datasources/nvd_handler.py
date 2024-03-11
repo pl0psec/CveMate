@@ -52,7 +52,8 @@ class NvdHandler:
         self.retry_delay = int(nvd_config.get('retry_delay', 30))
         self.results_per_page = int(nvd_config.get('results_per_page', 2000))
         self.max_threads = int(nvd_config.get('max_threads', 10))
-
+        self.request_timeout = int(nvd_config.get('request_timeout', 120))
+        
         self.save_data = config_handler.get_boolean('cvemate', 'save_data', False)
 
         mongodb_config = config_handler.get_mongodb_config()
@@ -79,9 +80,9 @@ class NvdHandler:
                     response.raise_for_status()
                     return response.json()
                 except requests.HTTPError as e:
-                    if e.response.status_code == 403:
+                    if e.response.status_code in [403, 503]:
                         attempt += 1
-                        time.sleep(self.retry_delay)
+                        time.sleep(self.retry_delay if e.response.status_code == 403 else 30)
                         continue
                     raise
                 except ValueError as e:
@@ -108,7 +109,7 @@ class NvdHandler:
             params.update(custom_params)
 
         headers = {'apiKey': self.api_key} if self.api_key else {}
-        return requests.get(self.baseurl, headers=headers, params=params, timeout=10)
+        return requests.get(self.baseurl, headers=headers, params=params, timeout=self.request_timeout)
 
     def _process_data(self, data, step):
         """
@@ -161,9 +162,7 @@ class NvdHandler:
 
         all_vulnerabilities = []  # List to store all vulnerabilities
 
-        # with tqdm(total=total_results) as pbar:
         with tqdm(total=total_results, initial=len(initial_vulnerabilities)) as pbar:
-
             with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_threads) as executor:
                 # Start from the second page, since the first page was already fetched
                 futures = [executor.submit(self.make_request, step='init', start_index=start_index * self.results_per_page)
@@ -211,14 +210,12 @@ class NvdHandler:
         lastModStartDate_str = lastModStartDate.strftime('%Y-%m-%dT%H:%M:%SZ')
         lastModEndDate_str = now_utc.strftime('%Y-%m-%dT%H:%M:%SZ')
 
-        # Calculate the duration of the window in a human-readable format
         duration = now_utc - lastModStartDate
         days, seconds = duration.days, duration.seconds
         hours = days * 24 + seconds // 3600
         minutes = (seconds % 3600) // 60
         duration_str = f"{days} days, {hours % 24} hours, {minutes} minutes" if days else f"{hours % 24} hours, {minutes} minutes"
 
-        # Log message with time window and its human-readable duration
         Logger.log(
             f"Downloading data for the window: Start - {lastModStartDate_str}, End - {lastModEndDate_str} (Duration: {duration_str})", 'INFO')
 
