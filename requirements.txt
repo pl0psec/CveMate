@@ -1,5 +1,5 @@
 pymongo==4.7.3
 ratelimit==2.2.1
 Requests==2.32.3
-tqdm==4.66.2
+tqdm==4.66.4
 pre-commit
