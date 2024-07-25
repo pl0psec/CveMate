@@ -45,11 +45,11 @@ class EpssHandler:
 
         # Check if epss_status is available and its score_date
         if not epss_status or parser.isoparse(epss_status['source_last_update']).date() < now_utc.date():
-            
+
             self.logger.info('Performing the required action because no EPSS status or its score_date is older than today.')
 
             # Call the new download_file method
-            csv_data = utils.download_file(self.url, 'data/epss.csv', logger=self.logger)
+            csv_data = utils.download_file(self.url, save_path='data/epss.csv' if self.save_data else None, logger=self.logger)
 
             # Log the number of exploits and size of the file
             num_epss = len(csv_data.splitlines()) - 1  # Subtract 1 for the header row

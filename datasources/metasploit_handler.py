@@ -55,12 +55,9 @@ class MetasploitHandler:
 
         # Check if exploitdb_status is available and its last_git_commit
         if not metasploit_status or parser.isoparse(metasploit_status['source_last_update']).date() < latest_commit_date:
-                
-
-                
 
             # Call the new download_file method
-            json_data = utils.download_file(self.url, 'data/metasploit.json', logger=self.logger)
+            json_data = utils.download_file(self.url, save_path='data/metasploit.json' if self.save_data else None, logger=self.logger)
 
             # Convert the JSON string to a Python dictionary
             json_dict = json.loads(json_data)

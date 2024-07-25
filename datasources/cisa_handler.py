@@ -39,13 +39,12 @@ class CisaHandler:
     def init(self):
         print('\n'+self.banner)
 
-
         cisa_status = self.mongodb_handler.get_source_status('cisa')
         # Get the current time in UTC
         now_utc = datetime.now(pytz.utc)
 
         # https://www.cisa.gov/known-exploited-vulnerabilities-catalog
-        kev_data = utils.download_file(self.url, 'data/known_exploited_vulnerabilities.json', logger=self.logger)
+        kev_data = utils.download_file(self.url, logger=self.logger)
         kev_data_dict = json.loads(kev_data)
 
         # "catalogVersion": "2024.07.23",
