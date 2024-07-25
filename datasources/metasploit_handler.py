@@ -1,9 +1,11 @@
 import json
+import logging
+from dateutil import parser
 
 from handlers import utils
 from handlers.config_handler import ConfigHandler
 from handlers.logger_handler import Logger
-from handlers.mongodb_handler import MongodbHandler
+from handlers.mongodb_handler import MongoDBHandler
 
 
 def singleton(cls):
@@ -20,7 +22,7 @@ def singleton(cls):
 @singleton
 class MetasploitHandler:
 
-    def __init__(self, config_file='configuration.ini'):
+    def __init__(self, mongo_handler, config_file='configuration.ini', logger=None):
         self.banner = f"{chr(int('EAD3', 16))} {chr(int('eaaf', 16))} Metasploit"
 
         config_handler = ConfigHandler(config_file)
@@ -30,50 +32,63 @@ class MetasploitHandler:
         self.save_data = config_handler.get_boolean(
             'cvemate', 'save_data', False)
 
-        mongodb_config = config_handler.get_mongodb_config()
-        self.mongodb_handler = MongodbHandler(
-            mongodb_config['host'],
-            mongodb_config['port'],
-            mongodb_config['db'],
-            mongodb_config['username'],
-            mongodb_config['password'],
-            mongodb_config['authdb'],
-            mongodb_config['prefix'])
+        self.mongodb_handler = mongo_handler
+        self.logger = logger or logging.getLogger()
 
-    def update(self):
+    def init(self):
         print('\n'+self.banner)
 
-        # Call the new download_file method
-        json_data = utils.download_file(
-            self.url, 'data/metasploit.json' if self.save_data else None)
+        metasploit_status = self.mongodb_handler.get_source_status('metasploit')
+        try:
+            latest_commit_date = utils.get_github_latest_commit_date(
+                'https://api.github.com',
+                'rapid7',
+                'metasploit-framework',
+                'db/modules_metadata_base.json'
+            )
+            print(f"Latest commit date for 'db/modules_metadata_base.json': {latest_commit_date}")
+        except GitHubAPIError as e:
+            print(e)
 
-        # Convert the JSON string to a Python dictionary
-        json_dict = json.loads(json_data)
+        # Convert last_git_commit to a date object
+        latest_commit_date = parser.isoparse(latest_commit_date).date()
 
-        # Initialize an array to hold the extracted data
-        updated_data = []
+        # Check if exploitdb_status is available and its last_git_commit
+        if not metasploit_status or parser.isoparse(metasploit_status['source_last_update']).date() < latest_commit_date:
+                
 
-        # Iterate through the items in the dictionary
-        for key, value in json_dict.items():
-            if 'references' in value:
-                for reference in value['references']:
-                    if reference.startswith('CVE-'):
-                        # Construct a new dictionary for each CVE
-                        cve_dict = {
-                            'id': reference,
-                            'data': {
-                                'metasploit':{ 'key': key,
-                                'data': value}
+                
+
+            # Call the new download_file method
+            json_data = utils.download_file(self.url, 'data/metasploit.json', logger=self.logger)
+
+            # Convert the JSON string to a Python dictionary
+            json_dict = json.loads(json_data)
+
+            # Initialize an array to hold the extracted data
+            updated_data = []
+
+            # Iterate through the items in the dictionary
+            for key, value in json_dict.items():
+                if 'references' in value:
+                    for reference in value['references']:
+                        if reference.startswith('CVE-'):
+                            # Construct a new dictionary for each CVE
+                            cve_dict = {
+                                'id': reference,
+                                'metasploit':{ 'key': key, 'data': value}
                             }
-                        }
-                        # Add the dictionary to the array
-                        updated_data.append(cve_dict)
+                            # Add the dictionary to the array
+                            updated_data.append(cve_dict)
 
-        # Log the number of CVE codes found
-        Logger.log(f"[{chr(int('eaaf', 16))} Metasploit] Total number of Exploit codes found: {len(updated_data)}", 'INFO')
-        # print(updated_data)
-        self.mongodb_handler.update_multiple_documents(
-            'cve', updated_data)
-        self.mongodb_handler.update_status('metasploit')
+            # Log the number of CVE codes found
+            self.logger.info(f"[{chr(int('eaaf', 16))} Metasploit] Total number of Exploit codes found: {len(updated_data)}")
 
-        return updated_data
+            result = self.mongodb_handler.queue_request('cve', updated_data)
+            self.logger.info(f"[{chr(int('eaaf', 16))} Metasploit] mongodb query: {result}")
+
+            self.mongodb_handler.update_source_status('metasploit', {'source_last_update':latest_commit_date.isoformat()})
+
+        else:
+            # Skip if the condition is not met
+            self.logger.info(f"Skipping update, source_last_update: {metasploit_status['source_last_update']}")

@@ -4,6 +4,9 @@ data/
 DEBUG.md
 test*
 .vscode/
+.scannerwork/
+sonarscan.sh
+.gitleaks.toml
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -16,6 +19,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+py_envs/
 build/
 develop-eggs/
 dist/

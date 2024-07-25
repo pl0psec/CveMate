@@ -1,5 +1,7 @@
 import configparser
 import os
+import pytz
+from datetime import timezone
 
 def singleton(cls):
     instances = {}
@@ -34,6 +36,21 @@ class ConfigHandler:
             'prefix': os.getenv('MONGODB_PREFIX', self.config['mongodb']['Prefix'])
         }
         return mongodb_config
+
+    def get_timezone(self):
+        """ Retrieve the timezone configuration """
+        try:
+            # Attempt to get the timezone string from the 'cvemate' section or default to 'UTC'
+            # Ensure there's a fallback if 'timezone' key is missing
+            timezone_name = self.config.get('cvemate', 'timezone', fallback='UTC').strip().upper()
+            if not timezone_name:  # In case it's still empty after stripping
+                timezone_name = 'UTC'
+
+            # Try to fetch the timezone object from pytz
+            return pytz.timezone(timezone_name)
+        except pytz.UnknownTimeZoneError:
+            # Default to UTC if the timezone is unknown or an error occurs
+            return timezone.utc
 
     def get_nvd_config(self):
         """ Retrieve the nvd configuration. """

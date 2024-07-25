@@ -1,10 +1,12 @@
 from datetime import datetime
+import inspect
 
 class Logger:
     RED = '\033[91m'
     GREEN = '\033[92m'
     YELLOW = '\033[93m'
     BLUE = '\033[94m'
+    CYAN = '\033[96m'
     RESET = '\033[0m'
 
     # Add a class variable to store the maximum log level
@@ -27,6 +29,7 @@ class Logger:
         # Check if the log level of the message is equal or higher than the max_log_level
         if Logger.levels[level] >= Logger.levels[Logger.max_log_level]:
             color = {
+                'DEBUG': Logger.CYAN,
                 'INFO': Logger.BLUE,
                 'WARNING': Logger.YELLOW,
                 'ERROR': Logger.RED,
@@ -34,4 +37,10 @@ class Logger:
             }.get(level, Logger.BLUE)
 
             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            print(f"{timestamp} | {level} | {color}{message}{Logger.RESET}")
+
+            # Use inspect to find the module name
+            stack = inspect.stack()
+            module = inspect.getmodule(stack[1][0])
+            module_name = module.__name__ if module else '__main__'
+
+            print(f"{timestamp} | {level} | {module_name} | {color}{message}{Logger.RESET}")

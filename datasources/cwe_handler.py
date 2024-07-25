@@ -1,11 +1,10 @@
-import json
 import re
+import logging
 import xml.etree.ElementTree as ET
 
 from handlers import utils
 from handlers.config_handler import ConfigHandler
-from handlers.logger_handler import Logger
-from handlers.mongodb_handler import MongodbHandler
+from handlers.mongodb_handler import MongoDBHandler
 
 
 def singleton(cls):
@@ -22,8 +21,12 @@ def singleton(cls):
 @singleton
 class CweHandler:
 
-    def __init__(self, config_file='configuration.ini'):
+    def __init__(self, mongo_handler, config_file='configuration.ini', logger=None):
+        self.logger = logger or logging.getLogger()
         self.banner = f"{chr(int('EAD3', 16))} {chr(int('eb83', 16))} CWE"
+
+        self.mongodb_handler = mongo_handler
+
         config_handler = ConfigHandler(config_file)
 
         cwe_config = config_handler.get_config_section('cwe')
@@ -31,15 +34,7 @@ class CweHandler:
             'url', 'https://cwe.mitre.org/data/xml/cwec_latest.xml.zip')
         self.save_data = config_handler.get_boolean('cvemate', 'save_data', False)
 
-        mongodb_config = config_handler.get_mongodb_config()
-        self.mongodb_handler = MongodbHandler(
-            mongodb_config['host'],
-            mongodb_config['port'],
-            mongodb_config['db'],
-            mongodb_config['username'],
-            mongodb_config['password'],
-            mongodb_config['authdb'],
-            mongodb_config['prefix'])
+        self.logger = logger or logging.getLogger()
 
     def strip_namespace(self, tag):
         """ Strip the namespace URI and return the local part of the tag """
@@ -106,20 +101,16 @@ class CweHandler:
             print(f"XML parsing error: {e}")
             return []
 
-    def update(self):
+    def init(self):
         print('\n'+self.banner)
 
         # Call the new download_file method
-        xml_data = utils.download_file(
-            self.url, 'data/cwec_latest.xml' if self.save_data else None)
+        xml_data = utils.download_file(self.url, 'data/cwec_latest.xml', logger=self.logger)
 
         json_data = self.xml2json(xml_data)
         # print(json_data[-1])
 
         if json_data:
-            # results = self.mongodb_handler.insert_many('cwe', json_data)
-            results = self.mongodb_handler.update_multiple_documents('cwe', json_data)
-
+            self.mongodb_handler.queue_request('cwe', json_data, update=True, key_field='ID')
 
         self.mongodb_handler.update_status('cwe')
-        return results

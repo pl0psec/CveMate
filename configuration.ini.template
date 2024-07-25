@@ -1,6 +1,8 @@
 [cvemate]
 loglevel: info
 save_data: False
+scheduler: 6
+timezone: UTC
 
 [mongodb]
 Host: 127.0.0.1
@@ -43,3 +45,6 @@ url: https://security-tracker.debian.org/tracker/data/json
 
 [redhat]
 url: https://access.redhat.com/hydra/rest/securitydata
+
+[cisa]
+url: https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json

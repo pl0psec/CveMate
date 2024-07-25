@@ -12,7 +12,7 @@ from tqdm import tqdm
 from handlers import utils
 from handlers.config_handler import ConfigHandler
 from handlers.logger_handler import Logger
-from handlers.mongodb_handler import MongodbHandler
+from handlers.mongodb_handler import MongoDBHandler
 
 
 def singleton(cls):
@@ -45,7 +45,7 @@ class CveDotOrgHandler:
             'cvemate', 'save_data', False)
 
         mongodb_config = config_handler.get_mongodb_config()
-        self.mongodb_handler = MongodbHandler(
+        self.mongodb_handler = MongoDBHandler(
             mongodb_config['host'],
             mongodb_config['port'],
             mongodb_config['db'],
@@ -91,7 +91,7 @@ class CveDotOrgHandler:
         Logger.log(f"[{chr(int('f0626', 16))} cveorg] Downloading {self.url_init}", 'INFO')
         zipped_file_path = utils.download_file(
             self.url_init,
-            save_path='data/cveorg_main.zip' if self.save_data else None,
+            save_path='/tmp/cveorg_main.zip',
             is_binary=True
         )
 
@@ -118,7 +118,7 @@ class CveDotOrgHandler:
                 f"[{chr(int('f14ba', 16))} cveorg] Downloading {self.url_updates}", 'INFO')
             json_updates = utils.download_file(
                 self.url_updates,
-                save_path='data/cveorg_deltaLog.json' if self.save_data else None)
+                save_path='/tmp/cveorg_deltaLog.json' if self.save_data else None)
 
             data = json.loads(json_updates)
 

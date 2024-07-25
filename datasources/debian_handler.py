@@ -7,7 +7,7 @@ import requests
 from handlers import utils
 from handlers.config_handler import ConfigHandler
 from handlers.logger_handler import Logger
-from handlers.mongodb_handler import MongodbHandler
+from handlers.mongodb_handler import MongoDBHandler
 
 
 def singleton(cls):
@@ -36,7 +36,7 @@ class DebianHandler:
             'cvemate', 'save_data', False)
 
         mongodb_config = config_handler.get_mongodb_config()
-        self.mongodb_handler = MongodbHandler(
+        self.mongodb_handler = MongoDBHandler(
             mongodb_config['host'],
             mongodb_config['port'],
             mongodb_config['db'],

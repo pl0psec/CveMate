@@ -15,7 +15,7 @@ from tqdm import tqdm
 from handlers import utils
 from handlers.config_handler import ConfigHandler
 from handlers.logger_handler import Logger
-from handlers.mongodb_handler import MongodbHandler
+from handlers.mongodb_handler import MongoDBHandler
 
 def singleton(cls):
     instances = {}
@@ -46,15 +46,10 @@ class RedhatHandler:
         self.results_per_page = int(redhat_config.get('results_per_page', 2000))
         self.max_threads = int(redhat_config.get('max_threads', 10))
 
-        self.save_data = config_handler.get_boolean('redhat', 'save_data', False)
-
-        if self.save_data:
-            output_directory = os.path.dirname('data')
-            if not os.path.exists(output_directory):
-                os.makedirs(output_directory)
+        self.save_data = config_handler.get_boolean('cvemate', 'save_data', False)
 
         mongodb_config = config_handler.get_mongodb_config()
-        self.mongodb_handler = MongodbHandler(
+        self.mongodb_handler = MongoDBHandler(
             mongodb_config['host'],
             mongodb_config['port'],
             mongodb_config['db'],
