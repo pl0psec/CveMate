@@ -1,7 +1,7 @@
 pymongo==4.9.1
 ratelimit==2.2.1
 Requests==2.32.3
-tqdm==4.66.4
+tqdm==4.66.5
 pre-commit
 jsonPagination==0.3.1
 pytz==2024.2
