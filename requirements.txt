@@ -9,4 +9,4 @@ pyfiglet===1.0.2
 termcolor==2.4.0
 colorama==0.4.6
 schedule==1.2.2
-python-dateutil==2.9.0
+python-dateutil==2.9.0.post0
