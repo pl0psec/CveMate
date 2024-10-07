@@ -9,6 +9,7 @@ import time
 class MongoDBHandler:
     _instance = None
     _lock = threading.Lock()
+    LOG_PREFIX = f"[{chr(int('e7a4', 16))} MongoDB]"
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
@@ -29,7 +30,8 @@ class MongoDBHandler:
         tz (datetime.timezone, optional): The timezone for timestamps. Defaults to UTC.
         """
         if not hasattr(self, 'initialized'):  # Prevent reinitialization
-            self.logger = logger or logging.getLogger()
+            self.logger = logger.bind(prefix=self.LOG_PREFIX) if logger else logger.bind(prefix=self.LOG_PREFIX)
+
             self.logger.info('Initializing MongoDBHandler')
             self.timezone = tz
             self._init_mongo_connection(uri, dbname, collection_prefix)
@@ -245,16 +247,16 @@ class MongoDBHandler:
 
             if id_indexed:
                 self.logger.info(
-                    f"[{chr(int('e7a4', 16))} MongoDB] Collection {full_collection_name} Index on {field_name} already exists.")
+                    f"Collection {full_collection_name} Index on {field_name} already exists.")
             else:
                 # Create an index on 'id' field
                 collection.create_index([(field_name, ASCENDING)])
                 self.logger.info(
-                    f"[{chr(int('e7a4', 16))} MongoDB] Collection {full_collection_name} Index on {field_name} created.")
+                    f"Collection {full_collection_name} Index on {field_name} created.")
 
         except PyMongoError as e:
             self.logger.error(
-                f"[{chr(int('e7a4', 16))} MongoDB] Error for {full_collection_name}: {e}")
+                f"Error for {full_collection_name}: {e}")
 
     def get_last_update_time(self, data_source):
         """

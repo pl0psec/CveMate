@@ -22,9 +22,9 @@ def singleton(cls):
 @singleton
 class MetasploitHandler:
 
-    def __init__(self, mongo_handler, config_file='configuration.ini', logger=None):
-        self.banner = f"{chr(int('EAD3', 16))} {chr(int('eaaf', 16))} Metasploit"
+    LOG_PREFIX = f"[{chr(int('eaaf', 16))} Metasploit]"
 
+    def __init__(self, mongo_handler, config_file='configuration.ini', logger=None):
         config_handler = ConfigHandler(config_file)
         metasploit_config = config_handler.get_config_section('metasploit')
         self.url = metasploit_config.get(
@@ -33,11 +33,9 @@ class MetasploitHandler:
             'cvemate', 'save_data', False)
 
         self.mongodb_handler = mongo_handler
-        self.logger = logger or logging.getLogger()
+        self.logger = logger.bind(prefix=self.LOG_PREFIX) if logger else logger.bind(prefix=self.LOG_PREFIX)
 
     def init(self):
-        print('\n'+self.banner)
-
         metasploit_status = self.mongodb_handler.get_source_status('metasploit')
         try:
             latest_commit_date = utils.get_github_latest_commit_date(
@@ -79,10 +77,10 @@ class MetasploitHandler:
                             updated_data.append(cve_dict)
 
             # Log the number of CVE codes found
-            self.logger.info(f"[{chr(int('eaaf', 16))} Metasploit] Total number of Exploit codes found: {len(updated_data)}")
+            self.logger.info(f"Total number of Exploit codes found: {len(updated_data)}")
 
             result = self.mongodb_handler.queue_request('cve', updated_data)
-            self.logger.info(f"[{chr(int('eaaf', 16))} Metasploit] mongodb query: {result}")
+            self.logger.info(f"mongodb query: {result}")
 
             self.mongodb_handler.update_source_status('metasploit', {'source_last_update':latest_commit_date.isoformat()})
 

@@ -22,9 +22,10 @@ def singleton(cls):
 @singleton
 class CisaHandler:
 
-    def __init__(self, mongo_handler, config_file='configuration.ini', logger=None):
-        self.banner = f"{chr(int('EAD3', 16))} {chr(int('f14ba', 16))} CISA's Kev"
+    # Define the log prefix as a class attribute for easy modification
+    LOG_PREFIX = f"[{chr(int('f14ba', 16))} CISA's Kev] "
 
+    def __init__(self, mongo_handler, config_file='configuration.ini', logger=None):
         self.mongodb_handler = mongo_handler
 
         config_handler = ConfigHandler(config_file)
@@ -33,12 +34,11 @@ class CisaHandler:
         self.url = cisa_config.get('url')
         self.save_data = config_handler.get_boolean('cvemate', 'save_data', False)
 
-        self.logger = logger or logging.getLogger()        
+        # Bind the logger with the prefix
+        self.logger = logger.bind(prefix=self.LOG_PREFIX) if logger else logger.bind(prefix=self.LOG_PREFIX)
 
 
     def init(self):
-        print('\n'+self.banner)
-
         cisa_status = self.mongodb_handler.get_source_status('cisa')
         # Get the current time in UTC
         now_utc = datetime.now(pytz.utc)
@@ -57,7 +57,7 @@ class CisaHandler:
             # Log the number of exploits and size of the file
             num_cisa = len(kev_data_dict['vulnerabilities'])
             file_size = len(kev_data.encode('utf-8'))  # Size in bytes
-            self.logger.info(f"[{chr(int('f14ba', 16))} CISA's Kev] Downloaded {num_cisa} exploits, file size: {file_size} bytes")
+            self.logger.info(f"Downloaded {num_cisa} exploits, file size: {file_size} bytes")
 
             # Initialize an empty list for the results
             results = []
@@ -67,7 +67,7 @@ class CisaHandler:
                 results.append({'id': vul['cveID'], 'kev':vul})
 
             # Log the number of CVE codes found
-            self.logger.info(f"[{chr(int('f14ba', 16))} CISA's Kev] Total number of CVE codes found: {num_cisa}")
+            self.logger.info(f"Total number of CVE codes found: {num_cisa}")
 
             self.mongodb_handler.queue_request('cve', results, update=True, key_field='id')
             self.mongodb_handler.update_source_status('cisa', {'source_last_update':source_last_update})

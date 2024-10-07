@@ -1,7 +1,8 @@
 import argparse
 import os
+import sys
 import time
-import logging
+import signal
 import schedule
 import threading
 from datetime import datetime, timezone, timedelta
@@ -10,6 +11,8 @@ import pyfiglet
 from termcolor import colored
 import colorama
 
+from loguru import logger  # Import Loguru's logger
+
 from datasources.cisa_handler import CisaHandler
 from datasources.cwe_handler import CweHandler
 from datasources.epss_handler import EpssHandler
@@ -17,7 +20,6 @@ from datasources.exploitdb_handler import ExploitdbHandler
 from datasources.metasploit_handler import MetasploitHandler
 from datasources.nvd_handler import NvdHandler
 
-from handlers.colored_console_handler import ColoredConsoleHandler
 from handlers.config_handler import ConfigHandler
 from handlers.mongodb_handler import MongoDBHandler
 # from handlers.prioritizer_handler import Prioritizer
@@ -54,9 +56,8 @@ def convert_hours_to_hms(hours):
 
 def job(mongodb_handler, timezone, init=False):
     """Scheduled job to be run. Place the logic for the job that needs to run on schedule here."""
-    logger = logging.getLogger()
     start_time = time.time()  # Start timing
-    logger.info('[Job] starting')
+    logger.info('[Job] Starting')
 
     job_stat_datetime = datetime.now(timezone)
 
@@ -67,15 +68,15 @@ def job(mongodb_handler, timezone, init=False):
     else:
         nvd.get_updates()
     
-    # # Add Exploit-DB
+    # Add Exploit-DB
     exploitdb = ExploitdbHandler(mongodb_handler, logger=logger)
     exploitdb.init()
 
-    # # Add Exploit-DB
+    # Add Metasploit
     metasploit = MetasploitHandler(mongodb_handler, logger=logger)
     metasploit.init()
 
-    # # Update CWE from cwe.mitre.org
+    # Update CWE from cwe.mitre.org
     cwe = CweHandler(mongodb_handler, logger=logger)
     cwe.init()
 
@@ -88,7 +89,7 @@ def job(mongodb_handler, timezone, init=False):
     cisa.init()
 
     logger.info('[Job] Waiting for DB queue to be processed.')
-    mongodb_handler.wait_for_processing()  # Wait here until the queue is empty
+    # mongodb_handler.wait_for_processing()  # Wait here until the queue is empty
     logger.info('[Job] All items have been processed.')
 
     try:
@@ -101,8 +102,7 @@ def job(mongodb_handler, timezone, init=False):
 
     end_time = time.time()  # End timing
     time_taken = end_time - start_time  # Calculate time taken
-    logger.info(f"[Job] finished in {time_taken:.2f} seconds.")
-
+    logger.info(f"[Job] Finished in {time_taken:.2f} seconds.")
 
 def calculate_initial_delay(last_run_time, interval_hours):
     """Calculate the delay for the next job run based on the last run time."""
@@ -115,33 +115,36 @@ def calculate_initial_delay(last_run_time, interval_hours):
         return 0  # If more time than the interval has passed, schedule immediately
     return (interval - elapsed_time).total_seconds() / 3600  # Delay in hours
 
-def run_once_later(delay, job_function, mongodb_handler):
+def run_once_later(delay, job_function, mongodb_handler, timezone):
     """Run the job function once after a specified delay."""
-    timer = threading.Timer(delay * 3600, job_function, [mongodb_handler])
+    timer = threading.Timer(delay * 3600, job_function, [mongodb_handler, timezone])
     timer.start()
 
-def setup_schedule(cvemate_config, mongodb_handler, initial_delay):
+def setup_schedule(cvemate_config, mongodb_handler, initial_delay, shutdown_event):
     """Setup task scheduling using the schedule library with initial and regular intervals."""
-    logger = logging.getLogger()
     full_hours, full_minutes, full_seconds = convert_hours_to_hms(initial_delay)
 
     if initial_delay > 0:
-        logger.info(f"[Scheduler] initial job to run in {full_hours}h {full_minutes}min {full_seconds}s.")
+        logger.info(f"[Scheduler] Initial job to run in {full_hours}h {full_minutes}min {full_seconds}s.")
         threading.Timer(initial_delay * 3600, job, [mongodb_handler, cvemate_config.get('timezone', 'UTC')]).start()
 
     # Calculate the start time for regular jobs
-    interval_hours = int(cvemate_config.get('scheduler', 4))
-    logger.info(f"[Scheduler] Update frequency, every {interval_hours}h")
+    interval_hours = float(cvemate_config.get('scheduler', 4))
+    logger.info(f"[Scheduler] Update frequency: every {interval_hours}h")
     time_to_first_regular_job = initial_delay + interval_hours
     start_hours, start_minutes, start_seconds = convert_hours_to_hms(time_to_first_regular_job)
 
-    logger.info(f"[Scheduler] regular jobs to start in {start_hours}h {start_minutes}min {start_seconds}s, then every {interval_hours} hours.")
-    threading.Timer(time_to_first_regular_job * 3600, lambda: schedule.every(interval_hours).hours.do(job, [mongodb_handler, cvemate_config.get('timezone', 'UTC')] )).start()
+    logger.info(f"[Scheduler] Regular jobs to start in {start_hours}h {start_minutes}min {start_seconds}s, then every {interval_hours} hours.")
+    threading.Timer(time_to_first_regular_job * 3600, lambda: schedule.every(interval_hours).hours.do(job, mongodb_handler, cvemate_config.get('timezone', 'UTC'))).start()
 
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
-
+    try:
+        while not shutdown_event.is_set():
+            schedule.run_pending()
+            time.sleep(1)
+    except Exception as e:
+        logger.error(f"[Scheduler] Exception in scheduler loop: {e}")
+    finally:
+        logger.info('[Scheduler] Shutdown event detected. Exiting scheduler loop.')
 
 def format_time_delta(delta):
     """Format timedelta into a more readable string."""
@@ -151,6 +154,18 @@ def format_time_delta(delta):
     seconds = seconds % 60
     return f"{days} days, {hours} hours, {minutes} minutes, {seconds} seconds"
 
+def handle_shutdown(signum, frame, shutdown_event):
+    """
+    Handle shutdown signals to gracefully terminate the program.
+    
+    Args:
+        signum (int): The signal number.
+        frame: The current stack frame.
+        shutdown_event (threading.Event): Event to signal shutdown.
+    """
+    logger.info('Shutdown signal received. Initiating graceful shutdown...')
+    shutdown_event.set()
+
 def main():
     """Main function to set up the environment and start the scheduler."""
     args, parser = parse_args()
@@ -158,27 +173,18 @@ def main():
     config_handler = ConfigHandler(config_file)    
     cvemate_config = config_handler.get_cvemate_config()
 
-    # Setup logging
-    logger = logging.getLogger()
+    # Setup Loguru logging
+    logger.remove()  # Remove the default Loguru handler
     if args.debug:
-        logger.setLevel('DEBUG')
+        log_level = 'DEBUG'
     else:
-        logger.setLevel(cvemate_config.get('loglevel', 'INFO').upper())
-
-    # Remove existing handlers associated with the root logger
-    for handler in logger.handlers[:]:
-        logger.removeHandler(handler)
-
-    # Set up a colored console handler for easier reading
-    custom_handler = ColoredConsoleHandler()
-    formatter = logging.Formatter('%(message)s')
-    custom_handler.setFormatter(formatter)
-    logger.addHandler(custom_handler)
+        log_level = cvemate_config.get('loglevel', 'INFO').upper()
+    logger.add(sys.stderr, level=log_level, format='<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level}</level> | <level>{message}</level>', backtrace=True, diagnose=True)
 
     log_timezone = config_handler.get_timezone()
-    logger.info(f"[Init] loglevel: {logging.getLevelName(logger.getEffectiveLevel())}")
-    logger.info(f"[Init] timezone: {log_timezone}")
-    logger.debug(f"[Init] config: {config_handler}")
+    logger.info(f"[Init] Log level: {log_level}")
+    logger.info(f"[Init] Timezone: {log_timezone}")
+    logger.debug(f"[Init] Config: {config_handler}")
 
     # MongoDB Handler Initialization
     mongodb_config = config_handler.get_mongodb_config()
@@ -186,13 +192,26 @@ def main():
         f"mongodb://{mongodb_config['username']}:{mongodb_config['password']}@{mongodb_config['host']}:{mongodb_config['port']}/{mongodb_config['authdb']}",
         mongodb_config['db'],
         collection_prefix=mongodb_config['prefix'],
-        logger=logger,
+        logger=logger,  # Pass Loguru's logger
         tz=log_timezone
     )
     # mongodb_handler.drop_collection('update_status')
-    #FIXME: handle exception from MongoDBHandler if connection fail (probably need to update MongoDBHandler to raise an exception)
+    # FIXME: Handle exception from MongoDBHandler if connection fails (possibly need to update MongoDBHandler to raise an exception)
 
-    schedule_config = config_handler.get_boolean('cvemate', 'scheduler', 4)  # Default to 4 hours if not set  
+    # Initialize shutdown event
+    shutdown_event = threading.Event()
+
+    # Setup signal handlers for graceful shutdown
+    signal.signal(signal.SIGINT, lambda signum, frame: handle_shutdown(signum, frame, shutdown_event))
+    signal.signal(signal.SIGTERM, lambda signum, frame: handle_shutdown(signum, frame, shutdown_event))
+
+    try:
+        # schedule_config = config_handler.get_int('cvemate', 'scheduler', 4, shutdown_event)  # Pass shutdown_event\
+        schedule_config = float(cvemate_config.get('scheduler', 4))  
+
+    except Exception as e:
+        logger.error(f"[Init] Failed to get scheduler configuration: {e}")
+        sys.exit(1)
 
     # Determine if immediate job run is needed
     last_update_time = mongodb_handler.get_last_update_time('cvemate')
@@ -215,11 +234,13 @@ def main():
         job(mongodb_handler, timezone=log_timezone, init=True)  # Execute the job immediately
 
     elif elapsed_time_since_last_update and elapsed_time_since_last_update > timedelta(hours=schedule_config):
-        logger.info('[Init] No recent updates or last update time exceeds 4 hours')
+        logger.info('[Init] No recent updates or last update time exceeds schedule interval')
         job(mongodb_handler, timezone=log_timezone, init=False)  # Execute the job immediately
 
     logger.info('[Init] Starting the task scheduler.')
-    setup_schedule(cvemate_config, mongodb_handler, initial_delay)
+    setup_schedule(cvemate_config, mongodb_handler, initial_delay, shutdown_event)
+
+    logger.info('CveMate has been shut down gracefully.')
 
 if __name__ == '__main__':
     banner()
