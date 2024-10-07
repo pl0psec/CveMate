@@ -44,9 +44,9 @@ class MetasploitHandler:
                 'metasploit-framework',
                 'db/modules_metadata_base.json'
             )
-            print(f"Latest commit date for 'db/modules_metadata_base.json': {latest_commit_date}")
+            self.logger.info(f"Latest commit date for 'db/modules_metadata_base.json': {latest_commit_date}")
         except GitHubAPIError as e:
-            print(e)
+            self.logger.error(e)
 
         # Convert last_git_commit to a date object
         latest_commit_date = parser.isoparse(latest_commit_date).date()

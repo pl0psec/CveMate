@@ -117,7 +117,7 @@ class EpssHandler:
                 self.logger.info('New score_date is more recent than epss_last_release_date. Proceeding to update.')
                 update_needed = True
             else:
-                self.logger.info('Skipping update, source_last_update: {score_date}')
+                self.logger.info(f"Skipping update, source_last_update: {score_date}")
 
             if update_needed:
                 # Skip the first line (metadata/comment)
