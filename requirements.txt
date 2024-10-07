@@ -10,3 +10,4 @@ termcolor==2.5.0
 colorama==0.4.6
 schedule==1.2.2
 python-dateutil==2.9.0.post0
+loguru==0.7.2
