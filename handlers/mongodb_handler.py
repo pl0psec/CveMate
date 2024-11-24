@@ -12,6 +12,21 @@ class MongoDBHandler:
     LOG_PREFIX = f"[{chr(int('e7a4', 16))} MongoDB]"
 
     def __new__(cls, *args, **kwargs):
+        """Create or return the singleton instance of MongoDBHandler.
+        
+        Args:
+            cls (type): The class being instantiated.
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+        
+        Returns:
+            MongoDBHandler: The singleton instance of the MongoDBHandler class.
+        
+        Note:
+            This method implements the singleton pattern using double-checked locking.
+            It ensures that only one instance of MongoDBHandler is created and returned,
+            even in a multi-threaded environment.
+        """
         if not cls._instance:
             with cls._lock:
                 if not cls._instance:
