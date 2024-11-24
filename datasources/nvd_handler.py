@@ -19,6 +19,20 @@ def singleton(cls):
     instances = {}
 
     def get_instance(*args, **kwargs):
+        """Get or create a singleton instance of the class.
+        
+        Args:
+            *args: Variable length argument list to be passed to the class constructor.
+            **kwargs: Arbitrary keyword arguments to be passed to the class constructor.
+        
+        Returns:
+            object: The singleton instance of the class.
+        
+        Note:
+            This method implements the singleton pattern. It ensures that only one instance
+            of the class is created. If an instance already exists, it returns that instance
+            instead of creating a new one.
+        """
         if cls not in instances:
             instances[cls] = cls(*args, **kwargs)
         return instances[cls]
