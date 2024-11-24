@@ -16,6 +16,15 @@ from handlers.mongodb_handler import MongoDBHandler
 
 
 def singleton(cls):
+    """A decorator function that implements the Singleton design pattern.
+    
+    Args:
+        cls (type): The class to be transformed into a Singleton.
+    
+    Returns:
+        function: A wrapper function that ensures only one instance of the class is created.
+    
+    """
     instances = {}
 
     def get_instance(*args, **kwargs):
@@ -30,6 +39,22 @@ def singleton(cls):
 class CveDotOrgHandler:
 
     def __init__(self, config_file='configuration.ini'):
+        """Initialize the CVEMate object.
+        
+        This method sets up the CVEMate object by reading configuration settings, 
+        initializing URLs for CVE data retrieval, and setting up a MongoDB connection.
+        
+        Args:
+            config_file (str, optional): Path to the configuration file. 
+                                         Defaults to 'configuration.ini'.
+        
+        Returns:
+            None
+        
+        Raises:
+            ConfigError: If there's an issue with reading the configuration file.
+            MongoDBConnectionError: If there's an issue connecting to MongoDB.
+        """
         self.banner = f"{chr(int('EAD3', 16))} {chr(int('f0626', 16))} CVE from CVE.org"
 
         config_handler = ConfigHandler(config_file)
@@ -55,6 +80,17 @@ class CveDotOrgHandler:
             mongodb_config['prefix'])
 
     def load_all(self, zipped_file_path, listCve=None, excludeCve=None):
+        """Loads CVE data from a zipped file and updates the MongoDB database.
+        
+        Args:
+            zipped_file_path (str): Path to the zipped file containing CVE JSON data.
+            listCve (list, optional): List of specific CVE IDs to process. If None, all CVEs are processed.
+            excludeCve (list, optional): List of CVE IDs to exclude from processing.
+        
+        Returns:
+            list: A list of dictionaries containing processed CVE data, each with 'id' and 'data' keys.
+        
+        """
         cve_data = []
 
         # Convert excludeCve to a set for faster lookups
@@ -86,6 +122,17 @@ class CveDotOrgHandler:
         return cve_data
 
     def init(self):
+        """Initializes the object and downloads a zipped file from a specified URL.
+        
+        Args:
+            self: The instance of the class.
+        
+        Returns:
+            dict: The result of loading all data from the downloaded zip file.
+        
+        Raises:
+            utils.DownloadError: If there's an error downloading the file.
+        """
         print('\n'+self.banner+' - init')
 
         Logger.log(f"[{chr(int('f0626', 16))} cveorg] Downloading {self.url_init}", 'INFO')
@@ -102,6 +149,21 @@ class CveDotOrgHandler:
 
     def update(self):
         # Get the last update time
+        """Update CVE (Common Vulnerabilities and Exposures) data from the CVE.org database.
+        
+        This method checks for updates since the last update time, downloads new data if available,
+        and processes the updates. It handles both new and updated CVEs.
+        
+        Args:
+            self: The instance of the class containing this method.
+        
+        Returns:
+            list: A list of CVE IDs that were updated during this operation.
+        
+        Raises:
+            requests.Timeout: If a request to download GitHub data times out.
+            json.JSONDecodeError: If there's an error decoding the JSON data from the updates file.
+        """
         last_update = self.mongodb_handler.get_last_update_time('cveorg')
 
         if last_update is None:

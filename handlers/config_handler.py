@@ -4,6 +4,15 @@ import pytz
 from datetime import timezone
 
 def singleton(cls):
+    """A decorator that implements the singleton pattern for a class.
+    
+    Args:
+        cls (type): The class to be decorated.
+    
+    Returns:
+        function: A wrapper function that returns the single instance of the class.
+    
+    """
     instances = {}
 
     def get_instance(*args, **kwargs):
@@ -16,6 +25,17 @@ def singleton(cls):
 @singleton
 class ConfigHandler:
     def __init__(self, config_file='configuration.ini'):
+        """Initialize the configuration parser.
+        
+        Args:
+            config_file (str): Path to the configuration file. Defaults to 'configuration.ini'.
+        
+        Returns:
+            None
+        
+        Raises:
+            configparser.Error: If there's an error reading or parsing the configuration file.
+        """
         self.config_file = config_file
         self.config = configparser.ConfigParser()
         self.config.read(config_file)

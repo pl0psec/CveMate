@@ -26,6 +26,20 @@ def singleton(cls):
     instances = {}
 
     def get_instance(*args, **kwargs):
+        """Get or create a singleton instance of a class.
+        
+        Args:
+            *args: Variable length argument list to be passed to the class constructor.
+            **kwargs: Arbitrary keyword arguments to be passed to the class constructor.
+        
+        Returns:
+            object: The singleton instance of the class.
+        
+        Notes:
+            This method implements the Singleton design pattern using a class method.
+            It ensures that only one instance of the class is created and returned,
+            regardless of how many times the method is called.
+        """
         if cls not in instances:
             instances[cls] = cls(*args, **kwargs)
         return instances[cls]
@@ -66,6 +80,22 @@ class NvdHandler:
         @sleep_and_retry
         @limits(calls=self.api_rate_limit, period=self.rolling_window)
         def _make_request_limited():
+            """Makes a limited request to an external API with retry logic.
+            
+            Args:
+                None
+            
+            Returns:
+                dict: JSON response from the API.
+            
+            Raises:
+                requests.HTTPError: If the request fails with a non-retryable status code.
+                ValueError: If the API response contains invalid JSON.
+            
+            Note:
+                This method uses nonlocal variables 'start_index' and 'custom_params',
+                which should be defined in the outer scope.
+            """
             nonlocal start_index
             attempt = 0
 

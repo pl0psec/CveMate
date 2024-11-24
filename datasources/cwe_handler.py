@@ -8,6 +8,15 @@ from handlers.mongodb_handler import MongoDBHandler
 
 
 def singleton(cls):
+    """Decorator that implements the Singleton pattern for a class.
+    
+    Args:
+        cls (type): The class to be converted into a Singleton.
+    
+    Returns:
+        function: A wrapper function that returns the single instance of the class.
+    
+    """
     instances = {}
 
     def get_instance(*args, **kwargs):
@@ -22,6 +31,19 @@ def singleton(cls):
 class CweHandler:
 
     def __init__(self, mongo_handler, config_file='configuration.ini', logger=None):
+        """Initialize the CWE (Common Weakness Enumeration) handler.
+        
+        Args:
+            mongo_handler (object): Handler for MongoDB operations.
+            config_file (str, optional): Path to the configuration file. Defaults to 'configuration.ini'.
+            logger (logging.Logger, optional): Logger object for logging. If not provided, a default logger will be created.
+        
+        Returns:
+            None
+        
+        Raises:
+            ConfigurationError: If the configuration file is missing or invalid.
+        """
         self.logger = logger or logging.getLogger()
         self.banner = f"{chr(int('EAD3', 16))} {chr(int('eb83', 16))} CWE"
 
@@ -58,6 +80,18 @@ class CweHandler:
 
 
     def xml2json(self, xml_data):
+        """Converts XML data containing weaknesses information to a JSON-like format.
+        
+        Args:
+            xml_data (str): A string containing XML data with weakness information.
+        
+        Returns:
+            list: A list of dictionaries, where each dictionary represents a weakness
+            with its attributes and child elements. Returns an empty list if parsing fails.
+        
+        Raises:
+            ET.ParseError: If there's an error parsing the XML data.
+        """
         try:
             # Parse the XML data
             root = ET.fromstring(xml_data)
@@ -102,6 +136,24 @@ class CweHandler:
             return []
 
     def init(self):
+        """Initialize the CWE data collection and processing.
+        
+        This method performs the following steps:
+        1. Prints the banner.
+        2. Downloads the latest CWE XML data.
+        3. Converts the XML data to JSON format.
+        4. Queues the JSON data for insertion or update in the MongoDB.
+        5. Updates the status of the CWE data in the database.
+        
+        Args:
+            self: The instance of the class containing this method.
+        
+        Returns:
+            None
+        
+        Raises:
+            Potential exceptions from utils.download_file() or self.xml2json() are not explicitly handled.
+        """
         print('\n'+self.banner)
 
         # Call the new download_file method

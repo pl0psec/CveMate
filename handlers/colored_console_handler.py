@@ -19,6 +19,18 @@ class ColoredConsoleHandler(logging.Handler):
     }
 
     def emit(self, record):
+        """Emits a formatted log record to the console with timestamp, log level, module name, and colored message.
+        
+        Args:
+            self: The instance of the logging handler.
+            record (logging.LogRecord): The log record to be emitted.
+        
+        Returns:
+            None
+        
+        Raises:
+            Exception: If an error occurs during the emission process, it's caught and handled by self.handleError().
+        """
         try:
             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             color = self.LEVEL_COLORS.get(record.levelno, self.BLUE)
