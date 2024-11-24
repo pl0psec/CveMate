@@ -18,6 +18,15 @@ from handlers.logger_handler import Logger
 from handlers.mongodb_handler import MongoDBHandler
 
 def singleton(cls):
+    """A decorator that implements the singleton pattern for a class.
+    
+    Args:
+        cls (type): The class to be turned into a singleton.
+    
+    Returns:
+        function: A wrapper function that returns the single instance of the class.
+    
+    """
     instances = {}
 
     def get_instance(*args, **kwargs):
@@ -31,6 +40,22 @@ def singleton(cls):
 class RedhatHandler:
 
     def __init__(self, config_file='configuration.ini'):
+        """Initialize the RedHat CVE data fetcher.
+        
+        This method sets up the configuration for fetching CVE data from Red Hat's security data API.
+        It loads various settings from a configuration file, including API endpoints, rate limits,
+        and database connection details.
+        
+        Args:
+            config_file (str, optional): Path to the configuration file. Defaults to 'configuration.ini'.
+        
+        Returns:
+            None
+        
+        Raises:
+            ConfigError: If there's an issue with reading or parsing the configuration file.
+            MongoDBConnectionError: If there's an issue connecting to the MongoDB database.
+        """
         self.banner = f"{chr(int('EAD3', 16))} {chr(int('f111b', 16))} from RedHat"
 
         config_handler = ConfigHandler(config_file)
@@ -63,6 +88,20 @@ class RedhatHandler:
 
         @sleep_and_retry
         @limits(calls=self.api_rate_limit, period=self.rolling_window)
+        """Make a request to the API and process the response.
+        
+        Args:
+            step (str, optional): The step of the process, either 'init' or 'update'. Defaults to 'update'.
+            start_index (int, optional): The starting index for pagination. Defaults to 0.
+            custom_params (dict, optional): Additional parameters to include in the API request. Defaults to None.
+        
+        Returns:
+            dict: The JSON response from the API.
+        
+        Raises:
+            Exception: If the API request returns a non-200 status code.
+            ValueError: If the API response contains invalid JSON.
+        """
         def _make_request_limited():
             params = {
                 'resultsPerPage': self.results_per_page,
@@ -106,6 +145,31 @@ class RedhatHandler:
 
 
     def download_all_data(self):
+        """Downloads all vulnerability data from the API and processes it.
+        
+        This method performs the following steps:
+        1. Makes an initial request to get the first page of vulnerabilities.
+        2. Calculates the total number of pages based on the total results and results per page.
+        3. Uses a ThreadPoolExecutor to concurrently fetch the remaining pages.
+        4. Collects all vulnerabilities into a single list.
+        5. Updates a progress bar as data is fetched.
+        6. Ensures an index on the 'id' field in the 'cve' collection of the MongoDB database.
+        7. Optionally saves the collected data to a JSON file.
+        
+        Args:
+            self: The instance of the class containing this method.
+        
+        Returns:
+            None
+        
+        Raises:
+            Any exceptions from self.make_request() or MongoDB operations are not explicitly handled and will propagate.
+        
+        Note:
+            - This method uses concurrent.futures for parallel processing.
+            - It displays a progress bar using tqdm.
+            - The method assumes the existence of a MongoDB handler and utility functions.
+        """
         print('\n'+self.banner)
         initial_response = self.make_request()
         initial_vulnerabilities = initial_response.get('vulnerabilities', [])
@@ -136,6 +200,18 @@ class RedhatHandler:
 
 
     def get_updates(self, last_hours=None, follow=True):
+        """Retrieves and processes updates within a specified time window.
+        
+        Args:
+            last_hours (int, optional): Number of hours to look back for updates. If not provided, uses the last update time or defaults to 24 hours.
+            follow (bool, optional): Determines whether to follow updates. Defaults to True.
+        
+        Returns:
+            list: A list of update objects retrieved from the API.
+        
+        Raises:
+            RequestException: If there's an error in making the API request.
+        """
         print('\n'+self.banner)
         last_update_time = self.mongodb_handler.get_last_update_time('redhat')
         now_utc = datetime.utcnow()
