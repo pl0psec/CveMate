@@ -11,6 +11,18 @@ from handlers.mongodb_handler import MongoDBHandler
 
 
 def singleton(cls):
+    """Decorator that implements the Singleton pattern for a class.
+    
+    This decorator ensures that only one instance of the decorated class is created.
+    Subsequent calls to create an instance will return the existing instance.
+    
+    Args:
+        cls (type): The class to be decorated.
+    
+    Returns:
+        function: A wrapper function that manages the singleton instance.
+    
+    """
     instances = {}
 
     def get_instance(*args, **kwargs):
@@ -25,6 +37,18 @@ def singleton(cls):
 class DebianHandler:
 
     def __init__(self, config_file='configuration.ini'):
+        """Initialize the Debian security tracker data retrieval and storage system.
+        
+        Args:
+            config_file (str, optional): Path to the configuration file. Defaults to 'configuration.ini'.
+        
+        Returns:
+            None
+        
+        Raises:
+            ConfigurationError: If there's an issue with reading or parsing the configuration file.
+            MongoDBConnectionError: If there's a problem connecting to the MongoDB database.
+        """
         self.banner = f"{chr(int('EAD3', 16))} {chr(int('E77D', 16))} Debian"
 
         config_handler = ConfigHandler(config_file)
@@ -46,6 +70,20 @@ class DebianHandler:
             mongodb_config['prefix'])
 
     def update(self):
+        """Update the Debian CVE data in the MongoDB database.
+        
+        This method downloads Debian CVE data from a specified URL, processes it, and updates the MongoDB database with the latest information. It also logs the total number of CVE codes found.
+        
+        Args:
+            self: The instance of the class containing this method.
+        
+        Returns:
+            list: A list of dictionaries containing the updated CVE data. Each dictionary has 'id' and 'data' keys, where 'id' is the CVE ID and 'data' contains the Debian-specific CVE details.
+        
+        Raises:
+            JSONDecodeError: If the downloaded data is not valid JSON.
+            ConnectionError: If there's an issue downloading the file from the URL.
+        """
         print('\n'+self.banner)
 
         # Call the new download_file method
