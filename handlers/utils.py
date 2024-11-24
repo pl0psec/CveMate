@@ -25,6 +25,21 @@ class JSONEncoder(json.JSONEncoder):
 
     def default(self, o):
         # If the object is an ObjectId (from MongoDB), convert it to a string.
+        """Custom JSON encoder for MongoDB ObjectId
+        
+        This method extends the default JSON encoder to handle MongoDB ObjectId instances.
+        
+        Args:
+            self: The instance of the JSONEncoder class.
+            o (Any): The object to be encoded.
+        
+        Returns:
+            str or Any: If the object is an ObjectId, returns its string representation.
+                        Otherwise, delegates to the default JSON encoder.
+        
+        Raises:
+            TypeError: If the object is not JSON serializable and not an ObjectId.
+        """
         if isinstance(o, ObjectId):
             return str(o)
         # Otherwise, use the default JSON encoding.
