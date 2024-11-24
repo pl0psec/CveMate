@@ -9,6 +9,15 @@ from handlers.mongodb_handler import MongoDBHandler
 
 
 def singleton(cls):
+    """A decorator that implements the singleton pattern for a class.
+    
+    Args:
+        cls (type): The class to be decorated.
+    
+    Returns:
+        function: A wrapper function that returns the single instance of the class.
+    
+    """
     instances = {}
 
     def get_instance(*args, **kwargs):
@@ -25,6 +34,19 @@ class MetasploitHandler:
     LOG_PREFIX = f"[{chr(int('eaaf', 16))} Metasploit]"
 
     def __init__(self, mongo_handler, config_file='configuration.ini', logger=None):
+        """Initialize the Metasploit module.
+        
+        Args:
+            mongo_handler: MongoDB handler for database operations.
+            config_file (str, optional): Path to the configuration file. Defaults to 'configuration.ini'.
+            logger (Logger, optional): Logger object for logging. If not provided, a new logger will be created.
+        
+        Returns:
+            None
+        
+        Raises:
+            ConfigurationError: If there are issues with reading the configuration file.
+        """
         config_handler = ConfigHandler(config_file)
         metasploit_config = config_handler.get_config_section('metasploit')
         self.url = metasploit_config.get(
@@ -36,6 +58,21 @@ class MetasploitHandler:
         self.logger = logger.bind(prefix=self.LOG_PREFIX) if logger else logger.bind(prefix=self.LOG_PREFIX)
 
     def init(self):
+        """Initializes and updates the Metasploit data source.
+        
+        This method checks for updates to the Metasploit framework's metadata, downloads new data if necessary,
+        processes it to extract CVE information, and updates the MongoDB database accordingly.
+        
+        Args:
+            self: The instance of the class containing this method.
+        
+        Returns:
+            None
+        
+        Raises:
+            GitHubAPIError: If there's an error while fetching the latest commit date from GitHub.
+        
+        """
         metasploit_status = self.mongodb_handler.get_source_status('metasploit')
         try:
             latest_commit_date = utils.get_github_latest_commit_date(
