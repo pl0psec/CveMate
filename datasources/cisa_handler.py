@@ -10,6 +10,15 @@ from handlers.logger_handler import Logger
 from handlers.mongodb_handler import MongoDBHandler
 
 def singleton(cls):
+    """Decorator that implements the Singleton pattern for a class.
+    
+    Args:
+        cls (type): The class to be transformed into a Singleton.
+    
+    Returns:
+        function: A wrapper function that returns the single instance of the class.
+    
+    """
     instances = {}
 
     def get_instance(*args, **kwargs):
@@ -26,6 +35,19 @@ class CisaHandler:
     LOG_PREFIX = f"[{chr(int('f14ba', 16))} CISA's Kev] "
 
     def __init__(self, mongo_handler, config_file='configuration.ini', logger=None):
+        """Initialize the CISA handler.
+        
+        Args:
+            mongo_handler: The MongoDB handler object for database operations.
+            config_file (str, optional): Path to the configuration file. Defaults to 'configuration.ini'.
+            logger (Logger, optional): Logger object for logging. If not provided, a new logger will be created.
+        
+        Returns:
+            None
+        
+        Raises:
+            ConfigurationError: If there's an issue with reading the configuration file.
+        """
         self.mongodb_handler = mongo_handler
 
         config_handler = ConfigHandler(config_file)
@@ -39,6 +61,22 @@ class CisaHandler:
 
 
     def init(self):
+        """Initializes and updates the CISA Known Exploited Vulnerabilities (KEV) data.
+        
+        This method checks for updates to the CISA KEV catalog, downloads the latest data if necessary,
+        and updates the MongoDB database with the new information. It also logs relevant information
+        about the update process.
+        
+        Args:
+            self: The instance of the class containing this method.
+        
+        Returns:
+            None
+        
+        Raises:
+            JSONDecodeError: If the downloaded KEV data is not valid JSON.
+            ConnectionError: If there's an issue downloading the file from the URL.
+        """
         cisa_status = self.mongodb_handler.get_source_status('cisa')
         # Get the current time in UTC
         now_utc = datetime.now(pytz.utc)
