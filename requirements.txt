@@ -4,7 +4,7 @@ Requests==2.32.3
 tqdm==4.67.0
 pre-commit
 jsonPagination==0.3.3
-pytz==2024.2
+pytz==2025.1
 pyfiglet===1.0.2
 termcolor==2.5.0
 colorama==0.4.6
