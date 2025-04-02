@@ -6,7 +6,7 @@ pre-commit
 jsonPagination==0.3.5
 pytz==2025.2
 pyfiglet===1.0.2
-termcolor==2.5.0
+termcolor==3.0.1
 colorama==0.4.6
 schedule==1.2.2
 python-dateutil==2.9.0.post0
